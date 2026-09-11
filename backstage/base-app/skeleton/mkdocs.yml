@@ -1,0 +1,7 @@
+site_name: ${{ values.projectName | dump }}
+site_description: ${{ values.description | dump }}
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+plugins:
+  - techdocs-core

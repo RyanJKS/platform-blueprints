@@ -1,0 +1,97 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: base-repo
+  title: Base GitHub repository
+  description: Create a new github repository.
+  tags:
+    - github
+    - repository
+spec:
+  owner: group:default/platform
+  type: service
+  
+  parameters:
+    - title: Project details
+      description: Creates a private repository in the selected GitHub account or organisation.
+      required:
+        - repo_url
+        - projectName
+        - description
+        - owner
+        - codeOwner
+      properties:
+        repo_url:
+          title: GitHub repository
+          type: string
+          description: Select the account or organisation and repository name. Use lowercase letters and digits with single hyphens between words, starting with a letter (maximum 63 characters).
+          pattern: '^github\.com\?(?=(?:[^&]*&)*repo=[^&]{1,63}(?:&|$))(?=(?:[^&]*&)*repo=[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:&|$))[^#]+$'
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+        projectName:
+          title: Project name
+          type: string
+          description: Display name for the project, for example My Service.
+          minLength: 1
+          maxLength: 100
+          pattern: '^\S([^\r\n]*\S)?$'
+        description:
+          title: Description
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '^\S([^\r\n]*\S)?$'
+        owner:
+          title: Backstage owner
+          type: string
+          description: Catalog owner of the project, independent of GitHub repository ownership.
+          ui:field: OwnerPicker
+          ui:options:
+            allowArbitraryValues: false
+            catalogFilter:
+              kind: [Group, User]
+        codeOwner:
+          title: GitHub code owner
+          type: string
+          description: GitHub username or organisation/team, including @. Must have write access to the selected repository.
+          pattern: '^@[A-Za-z0-9-]+(/[A-Za-z0-9_.-]+)?$'
+  steps:
+    - id: fetch
+      name: Generate repository
+      action: fetch:template
+      input:
+        url: ./skeleton
+        copyWithoutTemplating:
+          - .github/workflows/**
+        values:
+          name: ${{ parameters.repo_url | parseRepoUrl | pick("repo") }}
+          projectName: ${{ parameters.projectName }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          codeOwner: ${{ parameters.codeOwner }}
+    
+    - id: publish
+      name: Create private GitHub repository
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.repo_url }}
+        description: ${{ parameters.description }}
+        repoVisibility: private
+        defaultBranch: main
+    
+    - id: register
+      name: Register in Backstage
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+  
+  output:
+    links:
+      - title: GitHub repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Backstage catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

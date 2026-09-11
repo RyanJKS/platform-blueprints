@@ -39,3 +39,18 @@ Use Git tags and documented versions to identify stable points in the collection
 Each building block should explain its purpose, setup, dependencies, usage, and customisation points. Document compatibility requirements and breaking changes as it evolves. Keep app-specific details configurable, keep secrets out of templates, and include validation where it helps make reuse reliable.
 
 The aim is to build once, refine over time, and reuse confidently across my other apps.
+
+## Backstage catalog and documentation
+
+The root `catalog-info.yaml` registers this repository as a catalog Component and
+references its software templates through a Location. Set the catalog owner to
+your maintaining group before registering it.
+
+The root `mkdocs.yml` and `docs/` provide this library's TechDocs site:
+
+- [Overview](docs/index.md)
+- [Backstage setup](docs/backstage-setup.md)
+- [Maintaining templates](docs/maintaining-templates.md)
+
+Documentation under a template's `skeleton/` is copied into generated projects
+and is separate from this library's documentation.

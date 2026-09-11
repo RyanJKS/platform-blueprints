@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: platform-blueprints
+  title: Platform Blueprints
+  description: Reusable software templates and engineering blueprints.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - backstage
+    - templates
+spec:
+  type: library
+  lifecycle: experimental
+  # Replace with the catalog group responsible for this repository.
+  owner: group:default/platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: platform-blueprint-templates
+  description: Backstage software templates maintained in this repository.
+spec:
+  targets:
+    - ./backstage/base-app/template.yaml

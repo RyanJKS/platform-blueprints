@@ -256,3 +256,6 @@ apps/api/.data
 
 .tokensave/
 .serena/
+
+# Generated root MkDocs site
+/site/

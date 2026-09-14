@@ -2,6 +2,7 @@ site_name: Platform Blueprints
 site_description: Reusable software templates and engineering blueprints.
 nav:
   - Overview: index.md
+  - Developer tools / CLI: developer-tools.md
   - Backstage setup: backstage-setup.md
   - Maintaining templates: maintaining-templates.md
 plugins:

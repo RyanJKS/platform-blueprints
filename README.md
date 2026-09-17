@@ -49,6 +49,7 @@ your maintaining group before registering it.
 The root `mkdocs.yml` and `docs/` provide this library's TechDocs site:
 
 - [Overview](docs/index.md)
+- [Developer tools / CLI](docs/developer-tools.md) — workstation checklist in recommended setup order.
 - [Backstage setup](docs/backstage-setup.md)
 - [Maintaining templates](docs/maintaining-templates.md)
 

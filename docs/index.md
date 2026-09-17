@@ -15,6 +15,9 @@ pages, and a documentation-maintainer skill with repository instructions.
 
 ## Where to start
 
+- [Set up developer tools and CLIs](developer-tools.md) using the ordered checklist
+  of essentials and optional tools for each platform workflow.
+
 - [Register the repository in Backstage](backstage-setup.md) to browse this library
   in the catalog, read its TechDocs, and use its templates from Create.
 - [Maintain templates](maintaining-templates.md) to add blueprints and understand

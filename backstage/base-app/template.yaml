@@ -78,7 +78,7 @@ spec:
       input:
         repoUrl: ${{ parameters.repo_url }}
         description: ${{ parameters.description }}
-        repoVisibility: private
+        repoVisibility: public
         defaultBranch: main
     
     - id: register

@@ -2,9 +2,14 @@
 
 The `terraform/` directory is a Terragrunt catalog for infrastructure modules
 and scaffolding templates. Its first entry generates a Terragrunt unit for an
-existing Terraform module. The catalog also includes an Azure resource group
-module with caller-managed provider configuration. More cloud modules can be
-added as the library grows.
+existing Terraform module. The catalog includes Azure modules for resource groups,
+virtual networks, AKS, Key Vault, user-assigned managed identities, and Microsoft
+Entra security groups.
+Azure resource modules require AzureRM >= 5.0.0; Entra groups use AzureAD 3.x.
+The catalog also includes public Azure DNS zones with nameserver outputs for
+domain delegation, Azure RBAC assignments with explicit principal types, and
+network security groups with configurable custom rules.
+Provider configuration and state remain caller-managed.
 
 Use a current Terragrunt release that supports standalone template discovery.
 Add this block to an existing `root.hcl` in your Terragrunt repository:

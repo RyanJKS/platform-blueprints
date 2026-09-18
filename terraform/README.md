@@ -42,11 +42,23 @@ separately; a catalog revision does not pin an arbitrary module source.
 
 ## Available entries
 
+- [Azure network security group](azure/nsg/README.md): create an NSG with configurable custom rules.
+- [Azure RBAC assignment](azure/rbac/README.md): assign roles to users, groups, service principals, and managed identities.
+- [Azure DNS zone](azure/dns/README.md): create a public DNS zone and expose its authoritative nameservers.
 - [Terragrunt module unit](templates/module-unit/README.md): generate a unit for
   an existing Terraform module, with configurable root inclusion and inputs.
 
 - [Azure resource group](azure/resource_group/README.md): create a resource group
   with optional tags and caller-managed provider configuration.
+- [Azure virtual network](azure/vnet/README.md): Create an Azure virtual network with optional subnets.
+- [Azure managed identity](azure/managed_identity/README.md): Create a user-assigned Azure managed identity.
+- [Azure Key Vault](azure/keyvault/README.md): Create an Azure Key Vault with RBAC authorization and purge protection.
+- [Microsoft Entra security group](azure/ad_group/README.md): Create a Microsoft Entra ID security group with optional owners and members.
+- [Azure Kubernetes Service](azure/aks/README.md): Create an AKS cluster with a managed identity and a system node pool.
+
+Azure resource modules require AzureRM >= 5.0.0. Microsoft Entra groups require
+AzureAD >= 3.0.0 < 4.0.0 because groups are managed through Microsoft Graph.
+Provider configuration, credentials, and state remain caller-managed.
 
 The `aws/` directory is reserved for future modules.
 
@@ -90,6 +102,22 @@ Keep runnable examples outside this catalog directory so they do not appear as
 separate entries.
 
 ## Local development
+
+The `Terraform tests` GitHub Actions workflow runs on every pull request. It checks
+formatting, then initializes, validates, and tests each module under
+`terraform/<cloud>/<module>` sequentially in one job. It uses mocked tests without
+Azure credentials. There is no matrix or workflow concurrency configuration.
+
+The Azure modules include mocked plan tests for networking, AKS, Key Vault, and
+Entra groups. Tests require Terraform >= 1.7.0 and do not deploy Azure resources.
+For example:
+
+```sh
+terraform -chdir=terraform/azure/aks init -backend=false
+terraform -chdir=terraform/azure/aks validate
+terraform -chdir=terraform/azure/aks test
+terraform fmt -check -recursive terraform
+```
 
 From an empty destination directory, browse a local checkout:
 

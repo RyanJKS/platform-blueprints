@@ -22,6 +22,9 @@ The repository is organised by technology or purpose. These folders provide spac
 - `policies/` — Shared policies, guardrails, and standards.
 - `terraform/` — Terraform modules and infrastructure blueprints.
 
+See the [Terraform catalog](terraform/README.md) to browse and scaffold units
+from a Terragrunt repository.
+
 Add new areas as useful patterns emerge; the collection is not limited to these technologies.
 
 ## How I reuse it

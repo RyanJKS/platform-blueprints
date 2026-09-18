@@ -60,3 +60,7 @@ caller's authentication mechanism, not module inputs.
 
 Renaming or changing the location of the resource group requires replacement.
 Review the plan before applying changes to a resource group containing resources.
+
+AzureRM 4.x is no longer supported. Review the AzureRM 5.0 upgrade guide before
+upgrading an existing deployment, and run `terraform init -upgrade` in the caller.
+Pin the selected provider version in the consuming root module lock file.

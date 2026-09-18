@@ -3,6 +3,7 @@ site_description: Reusable software templates and engineering blueprints.
 nav:
   - Overview: index.md
   - Terraform catalog: terraform-catalog.md
+  - GitHub Actions: github-actions.md
   - Developer tools / CLI: developer-tools.md
   - Backstage setup: backstage-setup.md
   - Maintaining templates: maintaining-templates.md

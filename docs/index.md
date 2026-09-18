@@ -15,6 +15,8 @@ pages, and a documentation-maintainer skill with repository instructions.
 
 ## Where to start
 
+- [Reuse GitHub Actions](github-actions.md) for Docker and Terraform workflows.
+
 - [Use the Terraform catalog](terraform-catalog.md) to scaffold Terragrunt units.
 
 - [Set up developer tools and CLIs](developer-tools.md) using the ordered checklist

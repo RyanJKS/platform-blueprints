@@ -1,0 +1,174 @@
+name: Reusable Docker build and push
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner label for the build.
+        type: string
+        default: ubuntu-latest
+      context:
+        description: Build context relative to the calling repository.
+        type: string
+        default: .
+      dockerfile:
+        description: Dockerfile path relative to the calling repository.
+        type: string
+        default: Dockerfile
+      tags:
+        description: Newline-separated fully qualified image tags. Commas are not supported.
+        type: string
+        required: true
+      platform:
+        description: Single target platform; scanning and pushing use the same loaded image.
+        type: string
+        default: linux/amd64
+      target:
+        description: Optional Dockerfile build stage.
+        type: string
+        default: ''
+      build-args:
+        description: Newline-separated non-secret build arguments.
+        type: string
+        default: ''
+      push:
+        description: Push only after build checks and the optional vulnerability scan pass.
+        type: boolean
+        default: false
+      registry:
+        description: Registry host used for authentication.
+        type: string
+        default: ghcr.io
+      registry-username:
+        description: Registry username; defaults to the GitHub actor for GHCR.
+        type: string
+        default: ''
+      build-checks:
+        description: Run Docker BuildKit checks before building.
+        type: boolean
+        default: true
+      scan-image:
+        description: Scan the built image with Trivy before pushing.
+        type: boolean
+        default: true
+      scan-severity:
+        description: Comma-separated vulnerability severities that fail the scan.
+        type: string
+        default: HIGH,CRITICAL
+      scan-ignore-unfixed:
+        description: Ignore vulnerabilities that do not have a fix available.
+        type: boolean
+        default: false
+    secrets:
+      registry-password:
+        description: Registry password/token. Optional for GHCR, which uses GITHUB_TOKEN.
+        required: false
+      build-secrets:
+        description: BuildKit secrets in the format accepted by docker/build-push-action.
+        required: false
+    outputs:
+      image-id:
+        description: Local image ID of the exact image scanned and optionally pushed.
+        value: ${{ jobs.docker.outputs.image-id }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 45
+    outputs:
+      image-id: ${{ steps.build.outputs.imageid }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate build inputs
+        env:
+          IMAGE_TAGS: ${{ inputs.tags }}
+          PLATFORM: ${{ inputs.platform }}
+          PUSH: ${{ inputs.push }}
+          REGISTRY: ${{ inputs.registry }}
+          REGISTRY_USERNAME: ${{ inputs.registry-username }}
+          REGISTRY_PASSWORD: ${{ secrets.registry-password }}
+        run: |
+          python3 - <<'PY'
+          import os
+          tags = os.environ['IMAGE_TAGS'].splitlines()
+          tags = [tag.strip() for tag in tags if tag.strip()]
+          if not tags or any(',' in tag or any(c.isspace() for c in tag) or tag.startswith('-') for tag in tags):
+              raise SystemExit('Supply one image tag per line, without commas or whitespace.')
+          if not os.environ['PLATFORM'].strip() or ',' in os.environ['PLATFORM']:
+              raise SystemExit('Supply exactly one target platform.')
+          if os.environ['PUSH'] == 'true' and os.environ['REGISTRY'] != 'ghcr.io':
+              if not os.environ['REGISTRY_USERNAME'] or not os.environ['REGISTRY_PASSWORD']:
+                  raise SystemExit('Non-GHCR pushes require registry-username and registry-password.')
+          PY
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to registry
+        if: inputs.push || inputs.registry-username != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || (inputs.registry == 'ghcr.io' && secrets.GITHUB_TOKEN) }}
+
+      - name: Check Dockerfile
+        if: inputs.build-checks
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platform }}
+          target: ${{ inputs.target }}
+          build-args: |
+            ${{ inputs.build-args }}
+            BUILDKIT_DOCKERFILE_CHECK=error=true
+          secrets: ${{ secrets.build-secrets }}
+          call: check
+
+      - name: Build image locally
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platform }}
+          target: ${{ inputs.target }}
+          tags: ${{ inputs.tags }}
+          build-args: ${{ inputs.build-args }}
+          secrets: ${{ secrets.build-secrets }}
+          load: true
+          push: false
+
+      - name: Scan image
+        if: inputs.scan-image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.build.outputs.imageid }}
+          scanners: vuln
+          severity: ${{ inputs.scan-severity }}
+          ignore-unfixed: ${{ inputs.scan-ignore-unfixed }}
+          exit-code: '1'
+          format: table
+
+      - name: Push scanned image tags
+        if: inputs.push
+        env:
+          IMAGE_TAGS: ${{ inputs.tags }}
+        run: |
+          while IFS= read -r tag || [[ -n "$tag" ]]; do
+            tag="${tag#"${tag%%[![:space:]]*}"}"
+            tag="${tag%"${tag##*[![:space:]]}"}"
+            [[ -n "$tag" ]] || continue
+            docker push "$tag"
+          done <<< "$IMAGE_TAGS"

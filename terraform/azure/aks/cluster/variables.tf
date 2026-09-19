@@ -233,22 +233,3 @@ variable "web_app_routing" {
     error_message = "The default NGINX controller must be External, Internal, None, or AnnotationControlled."
   }
 }
-
-variable "argocd" {
-  description = "Argo CD extension settings. Null disables the extension; an empty object enables the defaults."
-  type = object({
-    name                   = optional(string, "argocd-ext")
-    release_train          = optional(string, "preview")
-    version                = optional(string)
-    namespace              = optional(string, "argocd")
-    namespace_install      = optional(bool, false)
-    high_availability      = optional(bool, false)
-    configuration_settings = optional(map(string), {})
-  })
-  default = null
-
-  validation {
-    condition     = var.argocd == null ? true : can(regex("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$", var.argocd.namespace))
-    error_message = "The Argo CD namespace must be a valid Kubernetes DNS label of at most 63 characters."
-  }
-}

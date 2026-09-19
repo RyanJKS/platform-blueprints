@@ -63,8 +63,8 @@ run "reject_fractional_node_count" {
 run "addons_disabled_by_default" {
   command = plan
   assert {
-    condition     = length(azurerm_kubernetes_cluster_extension.argocd) == 0 && length(azurerm_kubernetes_cluster.this.web_app_routing) == 0 && length(azurerm_kubernetes_cluster.this.monitor_metrics) == 0
-    error_message = "Argo CD, routing, and metrics must remain opt-in."
+    condition     = length(azurerm_kubernetes_cluster.this.web_app_routing) == 0 && length(azurerm_kubernetes_cluster.this.monitor_metrics) == 0
+    error_message = "Routing and metrics must remain opt-in."
   }
 }
 
@@ -88,11 +88,7 @@ run "configured_cluster" {
       dns_zone_ids             = ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Network/dnsZones/example.com"]
       default_nginx_controller = "External"
     }
-    argocd = {
-      namespace              = "gitops"
-      namespace_install      = true
-      configuration_settings = { "configs.cm.url" = "https://argocd.example.com" }
-    }
+
   }
   assert {
     condition     = azurerm_kubernetes_cluster.this.default_node_pool[0].auto_scaling_enabled && azurerm_kubernetes_cluster.this.default_node_pool[0].min_count == 3 && azurerm_kubernetes_cluster.this.default_node_pool[0].max_count == 5 && azurerm_kubernetes_cluster.this.default_node_pool[0].max_pods == 30
@@ -106,45 +102,7 @@ run "configured_cluster" {
     condition     = azurerm_kubernetes_cluster.this.monitor_metrics[0].annotations_allowed == var.monitor_metrics.annotations_allowed && azurerm_kubernetes_cluster.this.web_app_routing[0].dns_zone_ids == var.web_app_routing.dns_zone_ids
     error_message = "Metrics and application routing must use the requested settings."
   }
-  assert {
-    condition     = azurerm_kubernetes_cluster_extension.argocd[0].release_namespace == "gitops" && azurerm_kubernetes_cluster_extension.argocd[0].configuration_settings["namespaceInstall"] == "true" && azurerm_kubernetes_cluster_extension.argocd[0].configuration_settings["deployWithHighAvailability"] == "false" && azurerm_kubernetes_cluster_extension.argocd[0].configuration_settings["redis-ha.enabled"] == "false"
-    error_message = "Argo CD must use the requested namespace and explicitly disable HA."
-  }
-}
 
-run "argocd_ha_with_autoscaling" {
-  command = plan
-  variables {
-    auto_scaling_enabled = true
-    min_count            = 4
-    max_count            = 5
-    argocd               = { high_availability = true }
-  }
-  assert {
-    condition     = azurerm_kubernetes_cluster_extension.argocd[0].configuration_settings["deployWithHighAvailability"] == "true"
-    error_message = "Argo CD HA must be enabled when four nodes are guaranteed."
-  }
-}
-
-run "reject_argocd_ha_with_three_nodes" {
-  command = plan
-  variables {
-    node_count = 3
-    argocd     = { high_availability = true }
-  }
-  expect_failures = [azurerm_kubernetes_cluster_extension.argocd]
-}
-
-run "reject_argocd_ha_with_low_autoscaling_minimum" {
-  command = plan
-  variables {
-    node_count           = 4
-    auto_scaling_enabled = true
-    min_count            = 3
-    max_count            = 5
-    argocd               = { high_availability = true }
-  }
-  expect_failures = [azurerm_kubernetes_cluster_extension.argocd]
 }
 
 run "reject_reversed_scaling_limits" {
@@ -165,10 +123,23 @@ run "reject_disabled_accounts_without_entra" {
   expect_failures = [azurerm_kubernetes_cluster.this]
 }
 
-run "reject_invalid_namespace" {
+
+run "fixed_capacity_output" {
+  command = plan
+  assert {
+    condition     = output.minimum_node_count == 2
+    error_message = "Fixed capacity must expose node_count."
+  }
+}
+run "autoscaling_capacity_output" {
   command = plan
   variables {
-    argocd = { namespace = "Invalid_Namespace" }
+    auto_scaling_enabled = true
+    node_count           = 2
+    min_count            = 4
   }
-  expect_failures = [var.argocd]
+  assert {
+    condition     = output.minimum_node_count == 4
+    error_message = "Autoscaling capacity must expose min_count, not node_count."
+  }
 }

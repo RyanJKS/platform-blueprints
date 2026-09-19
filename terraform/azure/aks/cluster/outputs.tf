@@ -38,11 +38,6 @@ output "kubelet_identity" {
   value       = azurerm_kubernetes_cluster.this.kubelet_identity
 }
 
-output "argocd_extension_id" {
-  description = "The Argo CD extension resource ID, or null when disabled."
-  value       = try(azurerm_kubernetes_cluster_extension.argocd[0].id, null)
-}
-
 output "web_app_routing_identity" {
   description = "The application routing identity for caller-managed DNS role assignments, or null when disabled."
   value       = try(azurerm_kubernetes_cluster.this.web_app_routing[0].web_app_routing_identity, null)
@@ -58,4 +53,9 @@ output "kube_admin_config_raw" {
   description = "The administrator kubeconfig, when Entra integration and local accounts are enabled."
   value       = azurerm_kubernetes_cluster.this.kube_admin_config_raw
   sensitive   = true
+}
+
+output "minimum_node_count" {
+  description = "The configured node count, or minimum node count when autoscaling."
+  value       = var.auto_scaling_enabled ? var.min_count : var.node_count
 }

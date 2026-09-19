@@ -35,7 +35,7 @@ jobs:
 
       - name: Validate and test modules sequentially
         run: |
-          for module in terraform/*/*; do
+          while IFS= read -r module; do
             [[ -d "$module" ]] || continue
             compgen -G "$module/*.tf" > /dev/null || continue
 
@@ -44,4 +44,4 @@ jobs:
             terraform -chdir="$module" validate -no-color
             terraform -chdir="$module" test -no-color
             echo "::endgroup::"
-          done
+          done < <(find terraform -type d -name .terraform -prune -o -type f -name '*.tf' -printf '%h\n' | sort -u)

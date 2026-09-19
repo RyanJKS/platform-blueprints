@@ -40,7 +40,7 @@ include "root" {
 }
 
 terraform {
-  source = "git::https://github.com/RyanJKS/platform-blueprints.git//terraform/azure/dns?ref=REPLACE_WITH_PUBLISHED_TAG_OR_COMMIT"
+  source = "git::https://github.com/RyanJKS/platform-blueprints.git//terraform/azure/networking/dns?ref=REPLACE_WITH_PUBLISHED_TAG_OR_COMMIT"
 }
 
 inputs = {

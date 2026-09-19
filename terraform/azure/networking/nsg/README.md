@@ -66,7 +66,7 @@ include "root" {
 }
 
 terraform {
-  source = "git::https://github.com/RyanJKS/platform-blueprints.git//terraform/azure/nsg?ref=REPLACE_WITH_PUBLISHED_TAG_OR_COMMIT"
+  source = "git::https://github.com/RyanJKS/platform-blueprints.git//terraform/azure/networking/nsg?ref=REPLACE_WITH_PUBLISHED_TAG_OR_COMMIT"
 }
 
 dependency "networking" {

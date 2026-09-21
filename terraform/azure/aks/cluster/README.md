@@ -26,30 +26,43 @@ Pin the selected provider version in the consuming root module lock file.
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
 | `dns_prefix` | `string` | Yes | — | The DNS prefix for the AKS cluster. |
 | `kubernetes_version` | `string` | No | `null` | The Kubernetes version. Null uses the regional Azure default. |
-| `node_pool_name` | `string` | No | `"system"` | The name of the default Linux node pool. |
-| `node_count` | `number` | No | `2` | The number of nodes when autoscaling is disabled. |
-| `vm_size` | `string` | No | `"Standard_D2s_v5"` | The virtual machine size for system nodes. |
-| `vnet_subnet_id` | `string` | No | `null` | An existing subnet ID for the nodes. Null lets AKS manage networking. |
+| `default_node_pool` | `object` | No | `{}` | Default node pool settings, described below. |
 | `identity_ids` | `set(string)` | No | `[]` | User-assigned identity resource IDs. An empty set uses a system-assigned identity. |
 | `admin_group_object_ids` | `set(string)` | No | `[]` | Microsoft Entra group object IDs for cluster administrators. |
 | `private_cluster_enabled` | `bool` | No | `true` | Whether to create a private API server endpoint. |
 | `oidc_issuer_enabled` | `bool` | No | `true` | Whether to enable the OIDC issuer. |
 | `workload_identity_enabled` | `bool` | No | `true` | Whether to enable workload identity. Requires the OIDC issuer. |
 | `sku_tier` | `string` | No | `"Free"` | The AKS pricing tier. |
-
-| `auto_scaling_enabled` | `bool` | No | `false` | Enable the cluster autoscaler for the default pool. |
-| `min_count` | `number` | No | `3` | Minimum nodes when autoscaling is enabled. |
-| `max_count` | `number` | No | `5` | Maximum nodes when autoscaling is enabled. |
-| `max_pods` | `number` | No | `null` | Pods per node; null uses the AKS default. |
-| `node_public_ip_enabled` | `bool` | No | `false` | Assign public IP addresses to nodes. |
-| `temporary_name_for_rotation` | `string` | No | `"rotatingpool"` | Temporary node pool name during rotation. |
-| `zones` | `list(string)` | No | `[]` | Availability zones for the default pool. |
-| `os_disk_size_gb` | `number` | No | `null` | Node OS disk size; null uses the AKS default. |
 | `local_account_disabled` | `bool` | No | `null` | Null disables local accounts when Entra integration is enabled. |
 | `tenant_id` | `string` | No | `null` | Entra tenant ID; also enables integration without administrator groups. |
 | `azure_rbac_enabled` | `bool` | No | `true` | Use Azure RBAC for Entra integration. |
 | `monitor_metrics` | `object` | No | `null` | Managed Prometheus settings, described below. |
 | `web_app_routing` | `object` | No | `null` | Application routing settings, described below. |
+
+## Default node pool settings
+
+Set `default_node_pool` to an object containing only the attributes you want to
+override. Omit it or use `{}` to retain all defaults. Attributes with non-null
+defaults also use those defaults when explicitly set to `null`.
+
+| Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | `"system"` | The name of the default Linux node pool. |
+| `node_count` | `number` | `2` | The number of nodes when autoscaling is disabled. |
+| `auto_scaling_enabled` | `bool` | `false` | Enable the cluster autoscaler for the default pool. |
+| `min_count` | `number` | `3` | Minimum nodes when autoscaling is enabled. |
+| `max_count` | `number` | `5` | Maximum nodes when autoscaling is enabled. |
+| `max_pods` | `number` | `null` | Pods per node; null uses the AKS default. |
+| `node_public_ip_enabled` | `bool` | `false` | Assign public IP addresses to nodes. |
+| `temporary_name_for_rotation` | `string` | `"rotatingpool"` | Temporary node pool name during rotation. |
+| `zones` | `list(string)` | `[]` | Availability zones for the default pool. |
+| `os_disk_size_gb` | `number` | `null` | Node OS disk size; null uses the AKS default. |
+| `vm_size` | `string` | `"Standard_D2s_v5"` | The virtual machine size for system nodes. |
+| `vnet_subnet_id` | `string` | `null` | An existing subnet ID for the nodes. Null lets AKS manage networking. |
+
+This replaces the previous standalone node pool inputs. Move those inputs into
+`default_node_pool`, renaming `node_pool_name` to `name`. All other attribute
+names and defaults are unchanged.
 
 ## Outputs
 
@@ -102,12 +115,12 @@ inputs = {
   dns_prefix          = "aks-example-dev"
   sku_tier            = "Free"
 
-  auto_scaling_enabled        = true
-  min_count                   = 3
-  max_count                   = 5
-  max_pods                    = 30
-  vm_size                     = "Standard_D2s_v5"
-  temporary_name_for_rotation = "rotatingpool"
+  default_node_pool = {
+    auto_scaling_enabled = true
+    min_count            = 3
+    max_count            = 5
+    max_pods             = 30
+  }
 
   tenant_id              = "00000000-0000-0000-0000-000000000000"
   admin_group_object_ids = ["11111111-1111-1111-1111-111111111111"]
@@ -150,7 +163,7 @@ Networking uses Azure CNI overlay with AKS default pod and service ranges. Ensur
 those ranges do not overlap connected networks. For a custom subnet, attach a
 user-assigned identity with the necessary Network Contributor permissions before
 creating the cluster. Node public IPs remain disabled by default; enable them
-with `node_public_ip_enabled = true` when required.
+with `default_node_pool.node_public_ip_enabled = true` when required.
 
 The module does not create role assignments, private DNS zones, Azure Monitor
 workspaces, federated identity credentials, or Argo CD applications. Optional cluster addons remain disabled until configured.

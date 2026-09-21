@@ -55,9 +55,11 @@ run "reject_workload_identity_without_oidc" {
 run "reject_fractional_node_count" {
   command = plan
   variables {
-    node_count = 1.5
+    default_node_pool = {
+      node_count = 1.5
+    }
   }
-  expect_failures = [var.node_count]
+  expect_failures = [var.default_node_pool]
 }
 
 run "addons_disabled_by_default" {
@@ -71,15 +73,17 @@ run "addons_disabled_by_default" {
 run "configured_cluster" {
   command = plan
   variables {
-    auto_scaling_enabled        = true
-    min_count                   = 3
-    max_count                   = 5
-    max_pods                    = 30
-    node_public_ip_enabled      = true
-    temporary_name_for_rotation = "rotatingpool"
-    tenant_id                   = "11111111-1111-1111-1111-111111111111"
-    admin_group_object_ids      = ["22222222-2222-2222-2222-222222222222"]
-    local_account_disabled      = false
+    default_node_pool = {
+      auto_scaling_enabled        = true
+      min_count                   = 3
+      max_count                   = 5
+      max_pods                    = 30
+      node_public_ip_enabled      = true
+      temporary_name_for_rotation = "rotatingpool"
+    }
+    tenant_id              = "11111111-1111-1111-1111-111111111111"
+    admin_group_object_ids = ["22222222-2222-2222-2222-222222222222"]
+    local_account_disabled = false
     monitor_metrics = {
       annotations_allowed = "prometheus.io/scrape,prometheus.io/port,prometheus.io/path"
       labels_allowed      = "app,app.kubernetes.io/name"
@@ -108,9 +112,11 @@ run "configured_cluster" {
 run "reject_reversed_scaling_limits" {
   command = plan
   variables {
-    auto_scaling_enabled = true
-    min_count            = 5
-    max_count            = 3
+    default_node_pool = {
+      auto_scaling_enabled = true
+      min_count            = 5
+      max_count            = 3
+    }
   }
   expect_failures = [azurerm_kubernetes_cluster.this]
 }
@@ -134,12 +140,64 @@ run "fixed_capacity_output" {
 run "autoscaling_capacity_output" {
   command = plan
   variables {
-    auto_scaling_enabled = true
-    node_count           = 2
-    min_count            = 4
+    default_node_pool = {
+      auto_scaling_enabled = true
+      node_count           = 2
+      min_count            = 4
+    }
   }
   assert {
     condition     = output.minimum_node_count == 4
     error_message = "Autoscaling capacity must expose min_count, not node_count."
+  }
+}
+
+run "partial_node_pool_override" {
+  command = plan
+  variables {
+    default_node_pool = {
+      name       = "workers"
+      node_count = 4
+      vm_size    = "Standard_D4s_v5"
+    }
+  }
+  assert {
+    condition = (
+      azurerm_kubernetes_cluster.this.default_node_pool[0].name == "workers" &&
+      azurerm_kubernetes_cluster.this.default_node_pool[0].node_count == 4 &&
+      azurerm_kubernetes_cluster.this.default_node_pool[0].vm_size == "Standard_D4s_v5" &&
+      !azurerm_kubernetes_cluster.this.default_node_pool[0].auto_scaling_enabled &&
+      !azurerm_kubernetes_cluster.this.default_node_pool[0].node_public_ip_enabled &&
+      azurerm_kubernetes_cluster.this.default_node_pool[0].temporary_name_for_rotation == "rotatingpool" &&
+      output.minimum_node_count == 4
+    )
+    error_message = "Partial overrides must preserve defaults for omitted attributes and update fixed capacity."
+  }
+}
+
+run "null_node_pool_uses_defaults" {
+  command = plan
+  variables {
+    default_node_pool = null
+  }
+  assert {
+    condition     = azurerm_kubernetes_cluster.this.default_node_pool[0].name == "system" && output.minimum_node_count == 2
+    error_message = "A null node pool must use the module defaults."
+  }
+}
+
+run "null_attributes_use_defaults" {
+  command = plan
+  variables {
+    default_node_pool = {
+      name                 = null
+      node_count           = null
+      auto_scaling_enabled = null
+      max_pods             = null
+    }
+  }
+  assert {
+    condition     = azurerm_kubernetes_cluster.this.default_node_pool[0].name == "system" && output.minimum_node_count == 2 && !azurerm_kubernetes_cluster.this.default_node_pool[0].auto_scaling_enabled
+    error_message = "Explicit null attributes must retain non-null defaults."
   }
 }

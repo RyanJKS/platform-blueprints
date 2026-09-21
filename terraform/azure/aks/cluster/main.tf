@@ -21,18 +21,18 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   default_node_pool {
-    name                        = var.node_pool_name
-    node_count                  = var.auto_scaling_enabled ? null : var.node_count
-    auto_scaling_enabled        = var.auto_scaling_enabled
-    min_count                   = var.auto_scaling_enabled ? var.min_count : null
-    max_count                   = var.auto_scaling_enabled ? var.max_count : null
-    max_pods                    = var.max_pods
-    node_public_ip_enabled      = var.node_public_ip_enabled
-    temporary_name_for_rotation = var.temporary_name_for_rotation
-    zones                       = var.zones
-    os_disk_size_gb             = var.os_disk_size_gb
-    vm_size                     = var.vm_size
-    vnet_subnet_id              = var.vnet_subnet_id
+    name                        = var.default_node_pool.name
+    node_count                  = var.default_node_pool.auto_scaling_enabled ? null : var.default_node_pool.node_count
+    auto_scaling_enabled        = var.default_node_pool.auto_scaling_enabled
+    min_count                   = var.default_node_pool.auto_scaling_enabled ? var.default_node_pool.min_count : null
+    max_count                   = var.default_node_pool.auto_scaling_enabled ? var.default_node_pool.max_count : null
+    max_pods                    = var.default_node_pool.max_pods
+    node_public_ip_enabled      = var.default_node_pool.node_public_ip_enabled
+    temporary_name_for_rotation = var.default_node_pool.temporary_name_for_rotation
+    zones                       = var.default_node_pool.zones
+    os_disk_size_gb             = var.default_node_pool.os_disk_size_gb
+    vm_size                     = var.default_node_pool.vm_size
+    vnet_subnet_id              = var.default_node_pool.vnet_subnet_id
   }
 
   identity {
@@ -74,7 +74,7 @@ resource "azurerm_kubernetes_cluster" "this" {
 
   lifecycle {
     precondition {
-      condition     = !var.auto_scaling_enabled || var.min_count <= var.max_count
+      condition     = !var.default_node_pool.auto_scaling_enabled || var.default_node_pool.min_count <= var.default_node_pool.max_count
       error_message = "Autoscaling min_count must not exceed max_count."
     }
     precondition {

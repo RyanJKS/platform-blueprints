@@ -57,5 +57,5 @@ output "kube_admin_config_raw" {
 
 output "minimum_node_count" {
   description = "The configured node count, or minimum node count when autoscaling."
-  value       = var.auto_scaling_enabled ? var.min_count : var.node_count
+  value       = var.default_node_pool.auto_scaling_enabled ? var.default_node_pool.min_count : var.default_node_pool.node_count
 }

@@ -50,3 +50,10 @@ variable "rules" {
   default  = {}
   nullable = false
 }
+
+variable "subnet_ids" {
+  description = "Subnets to associate with this NSG, keyed by subnet name."
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}

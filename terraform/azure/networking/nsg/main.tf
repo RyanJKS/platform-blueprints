@@ -58,3 +58,10 @@ resource "azurerm_network_security_rule" "this" {
   destination_address_prefixes               = each.value.destination_address_prefixes
   destination_application_security_group_ids = each.value.destination_application_security_group_ids
 }
+
+resource "azurerm_subnet_network_security_group_association" "this" {
+  for_each = var.subnet_ids
+
+  subnet_id                 = each.value
+  network_security_group_id = azurerm_network_security_group.this.id
+}

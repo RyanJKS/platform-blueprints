@@ -22,3 +22,12 @@ output "rule_ids" {
   description = "Custom security rule resource IDs keyed by rule name."
   value       = { for name, rule in azurerm_network_security_rule.this : name => rule.id }
 }
+
+output "subnet_ids" {
+  description = "Subnet IDs keyed by subnet name."
+
+  value = {
+    for name, subnet in azurerm_subnet.this :
+    name => subnet.id
+  }
+}

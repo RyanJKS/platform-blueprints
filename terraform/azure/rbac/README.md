@@ -6,8 +6,14 @@ tags: [azure, rbac, module]
 
 # Azure RBAC assignment
 
-Creates one Azure role assignment at a resource, resource group, subscription, or
-management group scope. Use multiple module instances for multiple assignments.
+Creates multiple Azure role assignments in one module instance. Pass `assignments`
+as a map of objects keyed by stable names such as `platform_reader`. Each entry
+can use a different principal, role, and scope.
+
+A map is preferable to a list or set here: list indices can shift when entries
+are removed, and Terraform cannot use a set of objects directly with `for_each`.
+Map keys must be known at plan time, while IDs in the values can come from
+Terragrunt dependency outputs. Keep keys stable when changing values.
 
 Requires Terraform >= 1.3.0 and `hashicorp/azurerm` >= 5.0.0. The caller configures
 the AzureRM `features` block, subscription ID, authentication, and remote state.
@@ -15,6 +21,10 @@ This module does not configure a provider or backend. Pin the selected provider
 version in the consuming root module lock file.
 
 ## Inputs
+
+`assignments` is a required `map(object(...))`. Use `{}` to create no assignments.
+Each map entry supports the following attributes. Optional attributes use the
+listed defaults when omitted.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -40,12 +50,13 @@ the principal, not the role:
 
 ## Outputs
 
-- `id`: Role assignment resource ID.
-- `name`: Role assignment UUID.
-- `scope`: Assignment scope.
-- `principal_id`: Assigned principal object ID.
-- `type`: Assigned principal type.
-- `role_definition_id`: Resolved role definition resource ID.
+- `assignments`: A map of objects containing `id`, `name`, `scope`, `principal_id`,
+  `type`, and `role_definition_id` for each assignment.
+- `id`, `name`, `scope`, `principal_id`, `type`, `role_definition_id`: Maps of the
+  corresponding attribute, keyed by the same assignment names.
+
+For example, use `dependency.rbac.outputs.assignments.platform_reader.id` or
+`dependency.rbac.outputs.id.platform_reader` in another Terragrunt unit.
 
 ## Terragrunt usage
 
@@ -66,12 +77,26 @@ dependency "resource_group" {
   config_path = "../resource-group"
 }
 
+dependency "identity" {
+  config_path = "../managed-identity"
+}
+
 inputs = {
-  scope                = dependency.resource_group.outputs.id
-  principal_id         = dependency.group.outputs.object_id
-  type                 = "Group"
-  role_definition_name = "Reader"
-  description          = "Read access for the platform group."
+  assignments = {
+    platform_reader = {
+      scope                = dependency.resource_group.outputs.id
+      principal_id         = dependency.group.outputs.object_id
+      type                 = "Group"
+      role_definition_name = "Reader"
+      description          = "Read access for the platform group."
+    }
+    identity_contributor = {
+      scope                = dependency.resource_group.outputs.id
+      principal_id         = dependency.identity.outputs.principal_id
+      type                 = "ServicePrincipal"
+      role_definition_name = "Contributor"
+    }
+  }
 }
 ```
 
@@ -79,6 +104,26 @@ Replace the source revision with a published tag or commit and dependency paths
 with your own unit paths. For a managed identity, set `type = "ServicePrincipal"`
 and use its `principal_id`. Set `skip_service_principal_aad_check = true` only when
 needed for a newly created principal that has not replicated in Entra yet.
+
+## Migration from a single assignment
+
+This is a breaking input and output change. Move the former top-level inputs
+into one map entry, for example `assignments = { platform_reader = { ... } }`.
+Existing scalar outputs become maps; select the matching key when consuming them.
+
+Before applying to an existing deployment, migrate the old resource address to
+its chosen map key to avoid recreating the assignment. From the initialized
+Terragrunt unit, using the same backend and workspace, run:
+
+```sh
+terragrunt state mv 'azurerm_role_assignment.this' 'azurerm_role_assignment.this["platform_reader"]'
+terragrunt plan
+```
+
+For a Terraform module call, include its module address prefix in both addresses.
+Keys identify Terraform resources, not Azure assignment UUIDs. Changing a key
+requires a state move or a `moved` block to preserve that assignment. The optional
+`name` attribute remains the Azure assignment UUID.
 
 ## Behavior and upgrade considerations
 

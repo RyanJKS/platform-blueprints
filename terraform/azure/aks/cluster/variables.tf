@@ -159,13 +159,13 @@ variable "azure_rbac_enabled" {
 variable "monitor_metrics" {
   description = "Managed Prometheus metrics settings. Null disables the addon."
   type        = object({ annotations_allowed = optional(string), labels_allowed = optional(string) })
-  default     = null
+  default     = {}
 }
 
 variable "web_app_routing" {
   description = "Application routing settings and Azure DNS zone IDs. Null disables the addon."
   type        = object({ dns_zone_ids = optional(list(string), []), default_nginx_controller = optional(string, "External") })
-  default     = null
+  default     = {}
 
   validation {
     condition     = var.web_app_routing == null ? true : contains(["External", "Internal", "None", "AnnotationControlled"], var.web_app_routing.default_nginx_controller)

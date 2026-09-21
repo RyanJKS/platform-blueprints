@@ -43,12 +43,36 @@ variable "dns_servers" {
 
 variable "subnets" {
   description = "Subnets keyed by subnet name."
-  type        = map(object({ address_prefixes = list(string) }))
-  default     = {}
-  nullable    = false
+
+  type = map(object({
+    address_prefixes                              = list(string)
+    service_endpoints                             = optional(set(string), [])
+    private_endpoint_network_policies             = optional(string, "Enabled")
+    private_link_service_network_policies_enabled = optional(bool, true)
+
+    delegation = optional(object({
+      name = string
+
+      service_delegation = object({
+        name    = string
+        actions = optional(set(string), [])
+      })
+    }))
+  }))
+
+  default  = {}
+  nullable = false
 
   validation {
-    condition     = alltrue([for subnet in values(var.subnets) : length(subnet.address_prefixes) > 0 && alltrue([for cidr in subnet.address_prefixes : can(cidrhost(cidr, 0))])])
+    condition = alltrue([
+      for subnet in values(var.subnets) :
+      length(subnet.address_prefixes) > 0 &&
+      alltrue([
+        for cidr in subnet.address_prefixes :
+        can(cidrhost(cidr, 0))
+      ])
+    ])
+
     error_message = "Each subnet must have at least one valid CIDR range."
   }
 }

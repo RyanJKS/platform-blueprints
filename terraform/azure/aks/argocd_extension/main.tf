@@ -1,5 +1,9 @@
+locals {
+  name = coalesce(var.argocd.name, "${var.settings.name_prefix}argocd")
+}
+
 resource "azurerm_kubernetes_cluster_extension" "argocd" {
-  name              = var.argocd.name
+  name              = local.name
   cluster_id        = var.cluster_id
   extension_type    = "microsoft.argocd"
   release_train     = var.argocd.release_train

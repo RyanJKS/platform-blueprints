@@ -1,7 +1,16 @@
+variable "settings" {
+  description = "Shared solution settings. Explicit module inputs take precedence over these defaults."
+  type = object({
+    name_prefix = string
+    region_long = string
+  })
+  nullable = false
+}
+
 variable "name" {
-  description = "The resource name."
+  description = "Optional resource name override. Defaults to settings.name_prefix followed by vnet."
   type        = string
-  nullable    = false
+  default     = null
 }
 
 variable "resource_group_name" {
@@ -11,9 +20,9 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  description = "The Azure region in which to create the resource."
+  description = "Optional Azure region override. Defaults to settings.region_long."
   type        = string
-  nullable    = false
+  default     = null
 }
 
 variable "tags" {

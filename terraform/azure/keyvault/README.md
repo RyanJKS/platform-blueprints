@@ -18,11 +18,12 @@ Pin the selected provider version in the consuming root module lock file.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `name` | `string` | Yes | — | The resource name. |
+| `settings` | `object` | Yes | — | Shared naming and region defaults; see below. |
+| `name` | `string` | No | `null` | The resource name. |
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
-| `location` | `string` | Yes | — | The Azure region in which to create the resource. |
+| `location` | `string` | No | `null` | The Azure region in which to create the resource. |
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
-| `tenant_id` | `string` | Yes | — | The Microsoft Entra tenant ID. |
+| `tenant_id` | `string` | No | `null` | The Microsoft Entra tenant ID. |
 | `sku_name` | `string` | No | `"standard"` | The Key Vault SKU. |
 | `soft_delete_retention_days` | `number` | No | `90` | The retention period for deleted vaults and objects. |
 | `purge_protection_enabled` | `bool` | No | `true` | Whether to enable irreversible purge protection. |
@@ -49,6 +50,11 @@ terraform {
 }
 
 inputs = {
+  settings = {
+    name_prefix = "paymentsuksdev"
+    region_long = "uksouth"
+    tenant_id   = "11111111-1111-1111-1111-111111111111" # Replace with your tenant ID.
+  }
   name                = "kv-example-dev-001"
   resource_group_name = "rg-example-dev-uksouth"
   location            = "uksouth"
@@ -68,3 +74,18 @@ Key Vault data-plane roles separately; this module does not grant access or mana
 secrets. Vault names must be globally unique. Purge protection cannot be disabled once
 enabled, and retention cannot be changed after creation. AzureRM 5 uses
 `rbac_authorization_enabled`; legacy access policies are not configured.
+
+## Shared solution settings
+
+Pass the required `settings = module.solution_settings.settings` input. The module
+accepts the full settings output and reads only the fields declared in its input
+type. Pass tags separately with `tags = module.solution_settings.tags` where supported.
+
+The default name is `${settings.name_prefix}akv`, with no separator added.
+A nonempty `name` overrides the generated name. Name resolution lives in
+the top-level `locals` block, and the resource uses `local.name`.
+`location` defaults to `settings.region_long`; an explicit nonempty location wins.
+`tenant_id` defaults to `settings.tenant_id`; an explicit nonempty tenant ID wins.
+
+Generated names are not truncated or guaranteed unique. Review name changes in
+the plan because they can replace existing resources.

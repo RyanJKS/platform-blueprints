@@ -1,7 +1,12 @@
+locals {
+  name     = coalesce(var.name, "${var.settings.name_prefix}vnet")
+  location = coalesce(var.location, var.settings.region_long)
+}
+
 resource "azurerm_virtual_network" "this" {
-  name                = var.name
+  name                = local.name
   resource_group_name = var.resource_group_name
-  location            = var.location
+  location            = local.location
   address_space       = var.address_space
   dns_servers         = var.dns_servers
   tags                = var.tags

@@ -18,9 +18,10 @@ Pin the selected provider version in the consuming root module lock file.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `name` | `string` | Yes | — | The resource name. |
+| `settings` | `object` | Yes | — | Shared naming and region defaults; see below. |
+| `name` | `string` | No | `null` | The resource name. |
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
-| `location` | `string` | Yes | — | The Azure region in which to create the resource. |
+| `location` | `string` | No | `null` | The Azure region in which to create the resource. |
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
 
 ## Outputs
@@ -45,6 +46,11 @@ terraform {
 }
 
 inputs = {
+  settings = {
+    name_prefix = "paymentsuksdev"
+    region_long = "uksouth"
+    tenant_id   = "11111111-1111-1111-1111-111111111111" # Replace with your tenant ID.
+  }
   name                = "id-example-dev-uksouth"
   resource_group_name = "rg-example-dev-uksouth"
   location            = "uksouth"
@@ -60,3 +66,17 @@ Terragrunt `dependency` blocks when composing these modules.
 Role assignments and federated identity credentials are caller-managed. Use `id` when
 attaching this identity to AKS and `principal_id` when assigning Azure roles. Replacing
 the identity changes its principal and client IDs.
+
+## Shared solution settings
+
+Pass the required `settings = module.solution_settings.settings` input. The module
+accepts the full settings output and reads only the fields declared in its input
+type. Pass tags separately with `tags = module.solution_settings.tags` where supported.
+
+The default name is `${settings.name_prefix}id`, with no separator added.
+A nonempty `name` overrides the generated name. Name resolution lives in
+the top-level `locals` block, and the resource uses `local.name`.
+`location` defaults to `settings.region_long`; an explicit nonempty location wins.
+
+Generated names are not truncated or guaranteed unique. Review name changes in
+the plan because they can replace existing resources.

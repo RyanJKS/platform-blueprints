@@ -20,9 +20,10 @@ Pin the selected provider version in the consuming root module lock file.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `name` | `string` | Yes | — | The resource name. |
+| `settings` | `object` | Yes | — | Shared naming and region defaults; see below. |
+| `name` | `string` | No | `null` | The resource name. |
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
-| `location` | `string` | Yes | — | The Azure region in which to create the resource. |
+| `location` | `string` | No | `null` | The Azure region in which to create the resource. |
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
 | `dns_prefix` | `string` | Yes | — | The DNS prefix for the AKS cluster. |
 | `kubernetes_version` | `string` | No | `null` | The Kubernetes version. Null uses the regional Azure default. |
@@ -109,6 +110,11 @@ terraform {
 }
 
 inputs = {
+  settings = {
+    name_prefix = "paymentsuksdev"
+    region_long = "uksouth"
+    tenant_id   = "11111111-1111-1111-1111-111111111111" # Replace with your tenant ID.
+  }
   name                = "aks-example-dev-uksouth"
   resource_group_name = "rg-example-dev-uksouth"
   location            = "uksouth"
@@ -172,3 +178,19 @@ workspaces, federated identity credentials, or Argo CD applications. Optional cl
 
 With Terraform >= 1.7.0, run `terraform init -backend=false`, `terraform validate`,
 and `terraform test` in this directory. The tests cover addon defaults, configured routing and metrics, Entra access, autoscaling limits, and capacity outputs. All tests use mocked providers and create no Azure resources.
+
+## Shared solution settings
+
+Pass the required `settings = module.solution_settings.settings` input. The module
+accepts the full settings output and reads only the fields declared in its input
+type. Pass tags separately with `tags = module.solution_settings.tags` where supported.
+
+The default name is `${settings.name_prefix}aks`, with no separator added.
+A nonempty `name` overrides the generated name. Name resolution lives in
+the top-level `locals` block, and the resource uses `local.name`.
+`location` defaults to `settings.region_long`; an explicit nonempty location wins.
+`tenant_id` defaults to `settings.tenant_id`; an explicit nonempty tenant ID wins.
+Passing settings alone does not enable Entra integration. `dns_prefix` remains explicit.
+
+Generated names are not truncated or guaranteed unique. Review name changes in
+the plan because they can replace existing resources.

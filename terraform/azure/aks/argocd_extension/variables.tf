@@ -1,3 +1,11 @@
+variable "settings" {
+  description = "Shared solution settings used to generate the default name."
+  type = object({
+    name_prefix = string
+  })
+  nullable = false
+}
+
 variable "cluster_id" {
   description = "The resource ID of the managed-identity AKS cluster."
   type        = string
@@ -17,7 +25,7 @@ variable "minimum_node_count" {
 variable "argocd" {
   description = "Argo CD extension settings. Null disables the extension; an empty object enables the defaults."
   type = object({
-    name                   = optional(string, "argocd-ext")
+    name                   = optional(string)
     release_train          = optional(string, "preview")
     version                = optional(string)
     namespace              = optional(string, "argocd")

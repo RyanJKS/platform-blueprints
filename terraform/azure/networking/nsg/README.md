@@ -19,9 +19,10 @@ consuming root module lock file.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `name` | `string` | Yes | — | NSG name. |
+| `settings` | `object` | Yes | — | Shared naming and region defaults; see below. |
+| `name` | `string` | No | `null` | NSG name. |
 | `resource_group_name` | `string` | Yes | — | Existing resource group name. |
-| `location` | `string` | Yes | — | Azure region. |
+| `location` | `string` | No | `null` | Azure region. |
 | `tags` | `map(string)` | No | `{}` | NSG tags. |
 | `rules` | `map(object)` | No | `{}` | Custom rules keyed by Azure rule name. |
 
@@ -74,6 +75,11 @@ dependency "networking" {
 }
 
 inputs = {
+  settings = {
+    name_prefix = "paymentsuksdev"
+    region_long = "uksouth"
+    tenant_id   = "11111111-1111-1111-1111-111111111111" # Replace with your tenant ID.
+  }
   name                = "aks-nsg"
   location            = dependency.networking.outputs.location
   resource_group_name = dependency.networking.outputs.name
@@ -137,3 +143,17 @@ With Terraform >= 1.7.0, run `terraform init -backend=false`, `terraform validat
 and `terraform test` from this directory. Mocked tests cover HTTPS and optional
 SSH, plural selectors, application security groups, and invalid rules. They deploy
 no Azure resources. The existing PR workflow discovers this module automatically.
+
+## Shared solution settings
+
+Pass the required `settings = module.solution_settings.settings` input. The module
+accepts the full settings output and reads only the fields declared in its input
+type. Pass tags separately with `tags = module.solution_settings.tags` where supported.
+
+The default name is `${settings.name_prefix}nsg`, with no separator added.
+A nonempty `name` overrides the generated name. Name resolution lives in
+the top-level `locals` block, and the resource uses `local.name`.
+`location` defaults to `settings.region_long`; an explicit nonempty location wins.
+
+Generated names are not truncated or guaranteed unique. Review name changes in
+the plan because they can replace existing resources.

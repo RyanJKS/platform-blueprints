@@ -29,7 +29,7 @@ mapping. Tags pass through unchanged. No tags are generated from other inputs.
 
 ## Outputs
 
-- `settings`: An object containing `solution_name`, `solution_slug`, `name_suffix`,
+- `settings`: An object containing `solution_name`, `solution_slug`, `name_prefix`,
   `env`, `region_short`, `region_long`, `subscription_id`, `tenant_id`,
   `client_id`, and `object_id`.
 - `tags`: The input `var.tags` map returned directly, without inclusion in `settings`.
@@ -45,8 +45,8 @@ using this module's outputs to configure its own provider creates a dependency c
 outside `a-z` and `0-9` with a hyphen, and removes leading and trailing hyphens.
 For example, ` Payments API! ` becomes `payments-api`.
 
-`name_suffix` combines `${solution_slug}-${env}-${region_short}`. With `env = "dev"`
-and `region_short = "uks"`, the example produces `payments-api-dev-uks`.
+`name_prefix` combines `${solution_slug}${region_short}${env}`. With `env = "dev"`
+and `region_short = "uks"`, the example produces `payments-apiuksdev`.
 Environment and region values are used unchanged. These naming values are not
 truncated and do not guarantee uniqueness or compliance with resource-specific
 naming rules. Resource modules should handle those rules and optional name
@@ -80,8 +80,7 @@ module "solution_settings" {
 module "resource_group" {
   source = "./resource_group"
 
-  name     = "rg-${module.solution_settings.settings.name_suffix}"
-  location = module.solution_settings.settings.region_long
+  settings = module.solution_settings.settings
   tags     = module.solution_settings.tags
 }
 ```

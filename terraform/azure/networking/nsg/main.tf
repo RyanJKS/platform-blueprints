@@ -1,6 +1,11 @@
+locals {
+  name     = coalesce(var.name, "${var.settings.name_prefix}nsg")
+  location = coalesce(var.location, var.settings.region_long)
+}
+
 resource "azurerm_network_security_group" "this" {
-  name                = var.name
-  location            = var.location
+  name                = local.name
+  location            = local.location
   resource_group_name = var.resource_group_name
   tags                = var.tags
 }

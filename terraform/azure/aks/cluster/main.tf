@@ -1,11 +1,14 @@
 locals {
+  name          = coalesce(var.name, "${var.settings.name_prefix}aks")
+  location      = coalesce(var.location, var.settings.region_long)
+  tenant_id     = coalesce(var.tenant_id, var.settings.tenant_id)
   entra_enabled = length(var.admin_group_object_ids) > 0 || var.tenant_id != null
 }
 
 resource "azurerm_kubernetes_cluster" "this" {
-  name                              = var.name
+  name                              = local.name
   resource_group_name               = var.resource_group_name
-  location                          = var.location
+  location                          = local.location
   dns_prefix                        = var.dns_prefix
   kubernetes_version                = var.kubernetes_version
   private_cluster_enabled           = var.private_cluster_enabled
@@ -46,7 +49,7 @@ resource "azurerm_kubernetes_cluster" "this" {
     content {
       admin_group_object_ids = var.admin_group_object_ids
       azure_rbac_enabled     = var.azure_rbac_enabled
-      tenant_id              = var.tenant_id
+      tenant_id              = local.tenant_id
     }
   }
 

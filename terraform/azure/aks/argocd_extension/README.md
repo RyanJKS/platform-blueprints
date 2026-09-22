@@ -19,7 +19,7 @@ The `argocd` object supports these defaults:
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `name` | `"argocd-ext"` | Azure extension resource name. |
+| `name` | `null` | Name override; defaults to `${settings.name_prefix}argocd`. |
 | `release_train` | `"preview"` | Extension release train. |
 | `version` | `null` | Optional extension version. |
 | `namespace` | `"argocd"` | Namespace in which the extension installs Argo CD. |
@@ -62,6 +62,11 @@ dependency "cluster" {
 }
 
 inputs = {
+  settings = {
+    name_prefix = "paymentsuksdev"
+    region_long = "uksouth"
+    tenant_id   = "11111111-1111-1111-1111-111111111111" # Replace with your tenant ID.
+  }
   cluster_id         = dependency.cluster.outputs.id
   minimum_node_count = dependency.cluster.outputs.minimum_node_count
   argocd = {
@@ -73,3 +78,16 @@ inputs = {
 Deploy the cluster first. The example assumes sibling Terragrunt units named `cluster` and `argocd_extension`. The capacity input validates declared configuration, not live node availability.
 
 See [migration guidance](../README.md#migration) before splitting an existing deployment.
+
+## Shared solution settings
+
+Pass the required `settings = module.solution_settings.settings` input. The module
+accepts the full settings output and reads only the fields declared in its input
+type. Pass tags separately with `tags = module.solution_settings.tags` where supported.
+
+The default name is `${settings.name_prefix}argocd`, with no separator added.
+A nonempty `argocd.name` overrides the generated name. Name resolution lives in
+the top-level `locals` block, and the resource uses `local.name`.
+
+Generated names are not truncated or guaranteed unique. Review name changes in
+the plan because they can replace existing resources.

@@ -1,6 +1,11 @@
 mock_provider "azurerm" {}
 
 variables {
+  settings = {
+    name_prefix = "paymentsuksdev"
+    region_long = "uksouth"
+    tenant_id   = "11111111-1111-1111-1111-111111111111"
+  }
   name                = "nsg-aks-test"
   resource_group_name = "rg-networking"
   location            = "uksouth"

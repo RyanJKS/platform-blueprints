@@ -1,17 +1,15 @@
-data "azurerm_client_config" "current" {}
-
 locals {
   solution_slug = trim(
     replace(lower(trimspace(var.solution_name)), "/[^a-z0-9]+/", "-"),
     "-"
   )
 
-  name_suffix = "${local.solution_slug}-${var.env}-${var.region_short}"
+  name_prefix = "${local.solution_slug}${var.region_short}${var.env}"
 
   settings = {
     solution_name   = var.solution_name
     solution_slug   = local.solution_slug
-    name_suffix     = local.name_suffix
+    name_prefix     = local.name_prefix
     env             = var.env
     region_short    = var.region_short
     region_long     = var.region_long
@@ -21,3 +19,5 @@ locals {
     object_id       = data.azurerm_client_config.current.object_id
   }
 }
+
+data "azurerm_client_config" "current" {}

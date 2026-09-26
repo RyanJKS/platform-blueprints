@@ -96,7 +96,7 @@ accepts `"Internal"`, `"None"`, or `"AnnotationControlled"`. An external control
 can expose a public load balancer even when the cluster API is private. Grant the
 returned routing identity the required roles on the configured DNS zones.
 
-Deploy Argo CD separately with the [Argo CD extension module](../argocd_extension/README.md).
+Deploy Argo CD separately with the [extension module](../extension/README.md).
 
 ## Terragrunt usage
 

@@ -58,6 +58,7 @@ Azure modules are grouped under `networking/` and `aks/` where related modules e
 - [Azure virtual network](azure/networking/vnet/README.md): Create an Azure virtual network with optional subnets.
 - [Azure managed identity](azure/managed_identity/README.md): Create a user-assigned Azure managed identity.
 - [Azure Key Vault](azure/keyvault/README.md): Create an Azure Key Vault with RBAC authorization and purge protection.
+- [Azure storage account](azure/storage_account/README.md): Create a storage account with HNS, SFTP, NFS, data protection, and access controls.
 - [Microsoft Entra security group](azure/ad_group/README.md): Create a Microsoft Entra ID security group with optional owners and members.
 - [Azure Kubernetes Service](azure/aks/cluster/README.md): Create an AKS cluster with a managed identity and a system node pool.
 

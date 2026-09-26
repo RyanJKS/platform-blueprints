@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: example-artifact-storage
+  title: Example Artifact Storage Resource
+  description: Example infrastructure dependency of the example developer platform. No storage is provisioned.
+  tags:
+    - example
+spec:
+  type: storage
+  owner: group:default/platform
+  system: system:default/example-developer-platform

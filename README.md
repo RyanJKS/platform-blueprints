@@ -16,7 +16,7 @@ This is a growing collection of building blocks, rather than a single applicatio
 The repository is organised by technology or purpose. These folders provide space for the collection to grow:
 
 - `azuredevops/` — Azure DevOps pipelines and templates.
-- `backstage/` — Backstage templates and developer portal blueprints.
+- `backstage/` — [Backstage catalog and software templates](backstage/README.md).
 - `github-actions/` — [Reusable GitHub Actions](github-actions/README.md) for Docker
   builds, scans, pushes, and Terraform checks, plans, and applies.
 - `helm/` — Helm charts and Kubernetes deployment templates.
@@ -46,9 +46,9 @@ The aim is to build once, refine over time, and reuse confidently across my othe
 
 ## Backstage catalog and documentation
 
-The root `catalog-info.yaml` registers this repository as a catalog Component and
-references its software templates through a Location. Set the catalog owner to
-your maintaining group before registering it.
+The `backstage/all.yaml` Location registers the library Component and software
+templates. The root `catalog-info.yaml` forwards to it for existing registrations.
+Set the catalog owner to your maintaining group before registering it.
 
 The root `mkdocs.yml` and `docs/` provide this library's TechDocs site:
 

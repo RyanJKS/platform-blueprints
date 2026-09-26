@@ -1,25 +1,9 @@
-apiVersion: backstage.io/v1alpha1
-kind: Component
-metadata:
-  name: platform-blueprints
-  title: Platform Blueprints
-  description: Reusable software templates and engineering blueprints.
-  annotations:
-    backstage.io/techdocs-ref: dir:.
-  tags:
-    - backstage
-    - templates
-spec:
-  type: library
-  lifecycle: experimental
-  # Replace with the catalog group responsible for this repository.
-  owner: group:default/platform
----
+# Compatibility entry point. New installations can register backstage/all.yaml directly.
 apiVersion: backstage.io/v1alpha1
 kind: Location
 metadata:
-  name: platform-blueprint-templates
-  description: Backstage software templates maintained in this repository.
+  name: platform-blueprints-entrypoint
+  description: Compatibility entry point for the Platform Blueprints catalog.
 spec:
   targets:
-    - ./backstage/base-app/template.yaml
+    - ./backstage/all.yaml

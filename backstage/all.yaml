@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: platform-blueprint-templates
+  description: Backstage software templates maintained in this repository.
+spec:
+  targets:
+    - ./components/platform-blueprints.yaml
+    - ./templates/base-app/template.yaml
+    - ./domains/example-platform.yaml
+    - ./systems/example-developer-platform.yaml
+    - ./resources/example-artifact-storage.yaml

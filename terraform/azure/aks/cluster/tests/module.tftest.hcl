@@ -67,11 +67,15 @@ run "reject_fractional_node_count" {
   expect_failures = [var.default_node_pool]
 }
 
-run "addons_disabled_by_default" {
+run "addons_explicitly_disabled" {
   command = plan
+  variables {
+    monitor_metrics = null
+    web_app_routing = null
+  }
   assert {
     condition     = length(azurerm_kubernetes_cluster.this.web_app_routing) == 0 && length(azurerm_kubernetes_cluster.this.monitor_metrics) == 0
-    error_message = "Routing and metrics must remain opt-in."
+    error_message = "Null must disable routing and metrics."
   }
 }
 

@@ -25,8 +25,8 @@ Pin the selected provider version in the consuming root module lock file.
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
 | `location` | `string` | No | `null` | The Azure region in which to create the resource. |
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
-| `dns_prefix` | `string` | Yes | — | The DNS prefix for the AKS cluster. |
-| `kubernetes_version` | `string` | No | `null` | The Kubernetes version. Null uses the regional Azure default. |
+| `dns_prefix` | `string` | No | `null` | Set exactly one of this or `dns_prefix_private_cluster`. |
+| `kubernetes_version` | `string` | No | `"1.37"` | The Kubernetes version. Null uses the regional Azure default. |
 | `default_node_pool` | `object` | No | `{}` | Default node pool settings, described below. |
 | `identity_ids` | `set(string)` | No | `[]` | User-assigned identity resource IDs. An empty set uses a system-assigned identity. |
 | `admin_group_object_ids` | `set(string)` | No | `[]` | Microsoft Entra group object IDs for cluster administrators. |
@@ -37,8 +37,100 @@ Pin the selected provider version in the consuming root module lock file.
 | `local_account_disabled` | `bool` | No | `null` | Null disables local accounts when Entra integration is enabled. |
 | `tenant_id` | `string` | No | `null` | Entra tenant ID; also enables integration without administrator groups. |
 | `azure_rbac_enabled` | `bool` | No | `true` | Use Azure RBAC for Entra integration. |
-| `monitor_metrics` | `object` | No | `null` | Managed Prometheus settings, described below. |
-| `web_app_routing` | `object` | No | `null` | Application routing settings, described below. |
+| `monitor_metrics` | `object` | No | `{}` | Managed Prometheus settings, described below. |
+| `web_app_routing` | `object` | No | `{}` | Application routing settings, described below. |
+
+## Private networking and integrations
+
+The following inputs extend the existing node pool, control-plane identity, Entra, and managed Prometheus settings:
+
+| Input | Default | Settings |
+| --- | --- | --- |
+| `dns_prefix_private_cluster` | `null` | Alternative to `dns_prefix`; requires a private cluster and a custom private DNS zone. |
+| `private_dns_zone_id` | `null` | Existing private DNS zone resource ID, `"System"`, or `"None"`. |
+| `kubelet_identity` | `null` | Required `client_id`, `object_id`, and `user_assigned_identity_id` for an existing identity. Requires user-assigned control-plane identity via `identity_ids`. |
+| `network_profile` | Azure CNI overlay | Required `network_plugin`; optional `network_plugin_mode`, `network_policy`, `network_data_plane`, `dns_service_ip`, `service_cidr`, `pod_cidr`, `outbound_type` (default `"loadBalancer"`), and `load_balancer_sku` (default `"standard"`). |
+| `ingress_application_gateway` | `null` | Required `gateway_id` for an existing Application Gateway. |
+| `key_management_service` | `null` | Required `key_vault_key_id`; optional `key_vault_network_access`, either `"Public"` (default) or `"Private"`. |
+| `oms_agent` | `null` | Required `log_analytics_workspace_id`; optional `msi_auth_for_monitoring_enabled` (default `true`). |
+
+Omitting `network_profile` preserves the existing Azure CNI overlay configuration. Supplying a profile replaces it; for subnet-based Azure CNI, set `network_plugin = "azure"` and omit `network_plugin_mode`, as below. Set service and pod ranges that do not overlap connected networks, and choose a DNS service IP within the service range. Review network changes carefully because Azure may require cluster replacement or node rotation.
+
+The new addons are disabled unless configured. Existing `monitor_metrics` and `web_app_routing` defaults remain enabled with `{}`; use `null` to disable either. Application Gateway ingress and application routing are separate addons. Disable application routing when only Application Gateway is needed.
+
+Additional outputs `ingress_application_gateway_identity` and `oms_agent_identity` expose addon identities for downstream role assignments. The existing `kubelet_identity` output exposes the configured or generated kubelet identity.
+
+### Example with existing infrastructure
+
+The following module call assumes the referenced resources and data sources exist in the caller:
+
+```hcl
+module "aks" {
+  source = "git::https://github.com/RyanJKS/platform-blueprints.git//terraform/azure/aks/cluster?ref=REPLACE_WITH_PUBLISHED_TAG_OR_COMMIT"
+
+  settings                   = module.solution_settings.settings
+  name                       = "aks-01"
+  location                   = data.azurerm_resource_group.rg_01.location
+  resource_group_name        = data.azurerm_resource_group.rg_01.name
+  private_cluster_enabled    = true
+  dns_prefix_private_cluster = "aks-01"
+  private_dns_zone_id         = data.azurerm_private_dns_zone.aks.id
+  kubernetes_version         = null # Use the regional default, or pin a supported version.
+  local_account_disabled     = true
+  sku_tier                   = "Standard"
+
+  default_node_pool = {
+    name           = "default"
+    node_count     = 3
+    vm_size        = "Standard_D2s_v3"
+    vnet_subnet_id = data.azurerm_subnet.aks_01.id
+  }
+
+  identity_ids = [azurerm_user_assigned_identity.controlplane.id]
+  kubelet_identity = {
+    client_id                 = azurerm_user_assigned_identity.kubelet.client_id
+    object_id                 = azurerm_user_assigned_identity.kubelet.principal_id
+    user_assigned_identity_id = azurerm_user_assigned_identity.kubelet.id
+  }
+
+  network_profile = {
+    network_plugin = "azure"
+    dns_service_ip = "10.1.3.4"
+    service_cidr   = "10.1.3.0/24"
+  }
+
+  ingress_application_gateway = {
+    gateway_id = azurerm_application_gateway.agw_01.id
+  }
+  web_app_routing = null
+
+  key_management_service = {
+    key_vault_key_id         = azurerm_key_vault_key.kms.id
+    key_vault_network_access = "Private"
+  }
+
+  admin_group_object_ids = var.cluster_admin_ids
+  azure_rbac_enabled     = true
+
+  oms_agent = {
+    log_analytics_workspace_id      = azurerm_log_analytics_workspace.log.id
+    msi_auth_for_monitoring_enabled = true
+  }
+  monitor_metrics = {}
+
+  depends_on = [
+    azurerm_role_assignment.controlplane_identity_contributor,
+    azurerm_role_assignment.controlplane_keyvault_crypto_user,
+    azurerm_role_assignment.controlplane_resourcegroup_contributor,
+  ]
+}
+```
+
+Keep role assignments in the caller and reference all required assignments in the module's `depends_on`, including any additional DNS, subnet, or kubelet identity assignments. `depends_on` is a Terraform module meta-argument, not an input variable. The module does not create the identities, gateway, private DNS zone, Key Vault key, workspace, or their permissions.
+
+For custom private DNS, grant the control-plane identity the required Private DNS Zone Contributor and network permissions. An external kubelet identity requires Managed Identity Operator permissions for the control-plane identity. Configure the Key Vault cryptographic permissions and private connectivity required by AKS KMS; `key_vault_network_access = "Private"` does not create private endpoints or DNS. Grant the ingress addon identity the required Application Gateway permissions using the new identity output.
+
+AzureRM 5 uses managed Entra integration without a `managed` argument. Continue using `admin_group_object_ids`, `tenant_id`, and `azure_rbac_enabled`. Set administrator groups or an explicit tenant ID when disabling local accounts. Choose an AKS version supported in your region; the example does not carry forward the old `1.28` version.
 
 ## Default node pool settings
 
@@ -82,6 +174,59 @@ names and defaults are unchanged.
 - `kube_config_raw`: Sensitive cluster kubeconfig.
 - `kube_admin_config_raw`: Sensitive administrator kubeconfig, available when Entra
   integration and local accounts are enabled.
+
+- `kube_config`: Sensitive raw kubeconfig YAML, an alias of `kube_config_raw`.
+- `kube_config_credentials`: Sensitive connection object, or `null` when unavailable.
+- `host`: Sensitive Kubernetes API endpoint from the kubeconfig.
+- `client_certificate`, `client_key`, `cluster_ca_certificate`: Sensitive base64-encoded certificate fields and private key.
+- `username`, `password`: Sensitive authentication fields, which may be empty depending on authentication mode.
+- `kube_admin_config_credentials`: Sensitive administrator connection object, or `null` when unavailable.
+- `fqdn`, `private_fqdn`: API server DNS names, when configured.
+
+### Connection dependencies
+
+A downstream Terraform root can configure the Helm provider using these outputs:
+
+```hcl
+variable "aks_connection" {
+  type = object({
+    host                   = string
+    client_certificate     = string
+    client_key             = string
+    cluster_ca_certificate = string
+  })
+  sensitive = true
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = var.aks_connection.host
+    client_certificate     = base64decode(var.aks_connection.client_certificate)
+    client_key             = base64decode(var.aks_connection.client_key)
+    cluster_ca_certificate = base64decode(var.aks_connection.cluster_ca_certificate)
+  }
+}
+```
+
+Supply the object from the downstream unit's `terragrunt.hcl`:
+
+```hcl
+dependency "cluster" {
+  config_path = "../cluster"
+}
+
+inputs = {
+  aks_connection = dependency.cluster.outputs.kube_config_credentials
+}
+```
+
+Individual fields are also available, for example `dependency.cluster.outputs.client_certificate`. In Terraform, use `module.aks.kube_config_credentials` with your actual module call name. Configure the provider in the consuming root; the shared Helm release module inherits it.
+
+The certificate example requires usable client credentials. Entra-enabled clusters may return empty client certificate/key fields and require exec authentication, such as `kubelogin`, instead. Administrator credentials are unavailable when local accounts are disabled. These outputs do not change cluster authentication settings.
+
+Missing connection blocks return `null`; Terraform omits null root outputs, so consumers must account for unavailable credentials. Individual provider fields may also be empty strings. `kube_config` is raw YAML, not the structured object. Decode certificate fields when configuring providers; do not base64-decode the raw YAML.
+
+Deploy the cluster before downstream releases. The runner must reach the cluster API, including private networking when enabled. Sensitive outputs remain in Terraform state; protect the backend and mark downstream credential variables sensitive.
 
 ## Optional addon settings
 

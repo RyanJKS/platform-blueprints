@@ -45,6 +45,7 @@ separately; a catalog revision does not pin an arbitrary module source.
 Azure modules are grouped under `networking/` and `aks/` where related modules exist. `database/` reserves space for future service-specific modules. Grouping directories contain no `.tf` files.
 
 - [Shared Helm release](shared/helm_release/README.md): install any Helm chart on an existing Kubernetes cluster.
+- [Shared Kubernetes manifest](shared/kubernetes_manifest/README.md): apply Kubernetes resources, including Argo CD Applications.
 - [AKS extension](azure/aks/extension/README.md): install Azure-managed Kubernetes extensions on an existing AKS cluster.
 - [AKS migration guidance](azure/aks/README.md#migration): update existing cluster, extension, and networking consumers.
 

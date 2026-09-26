@@ -1,0 +1,77 @@
+name: Reusable Terraform checks
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner label.
+        type: string
+        default: ubuntu-latest
+      working-directory:
+        description: Terraform root module directory in the calling repository.
+        type: string
+        default: .
+      terraform-version:
+        description: Terraform CLI version; mocked tests need at least 1.7.0.
+        type: string
+        default: 1.10.3
+      recursive-format:
+        description: Check formatting recursively under the module directory.
+        type: boolean
+        default: true
+      run-tests:
+        description: Run terraform test; enable only for tests suitable for this job without cloud credentials.
+        type: boolean
+        default: false
+      test-directory:
+        description: Test directory relative to the root module.
+        type: string
+        default: tests
+      lockfile-readonly:
+        description: Require the caller's existing dependency lock file without changing it.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      TF_IN_AUTOMATION: 'true'
+      TF_INPUT: 'false'
+      WORKING_DIRECTORY: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+          terraform_wrapper: false
+      - name: Check formatting
+        env:
+          RECURSIVE: ${{ inputs.recursive-format }}
+        run: |
+          args=(-check -diff)
+          if [[ "$RECURSIVE" == 'true' ]]; then args+=(-recursive); fi
+          terraform -chdir="$WORKING_DIRECTORY" fmt "${args[@]}"
+      - name: Initialize without remote state
+        env:
+          READONLY: ${{ inputs.lockfile-readonly }}
+        run: |
+          args=(-backend=false -input=false -no-color)
+          if [[ "$READONLY" == 'true' ]]; then args+=(-lockfile=readonly); fi
+          terraform -chdir="$WORKING_DIRECTORY" init "${args[@]}"
+      - name: Validate
+        run: terraform -chdir="$WORKING_DIRECTORY" validate -no-color
+      - name: Run Terraform tests
+        if: inputs.run-tests
+        env:
+          TEST_DIRECTORY: ${{ inputs.test-directory }}
+        run: terraform -chdir="$WORKING_DIRECTORY" test -no-color -test-directory="$TEST_DIRECTORY"

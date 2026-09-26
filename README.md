@@ -17,10 +17,14 @@ The repository is organised by technology or purpose. These folders provide spac
 
 - `azuredevops/` — Azure DevOps pipelines and templates.
 - `backstage/` — Backstage templates and developer portal blueprints.
-- `github-actions/` — GitHub Actions workflows and reusable actions.
+- `github-actions/` — [Reusable GitHub Actions](github-actions/README.md) for Docker
+  builds, scans, pushes, and Terraform checks, plans, and applies.
 - `helm/` — Helm charts and Kubernetes deployment templates.
 - `policies/` — Shared policies, guardrails, and standards.
 - `terraform/` — Terraform modules and infrastructure blueprints.
+
+See the [Terraform catalog](terraform/README.md) to browse and scaffold units
+from a Terragrunt repository.
 
 Add new areas as useful patterns emerge; the collection is not limited to these technologies.
 

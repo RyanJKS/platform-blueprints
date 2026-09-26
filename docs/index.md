@@ -5,7 +5,7 @@ It is a library of starting points, not a running application.
 
 ## Available blueprint
 
-**Base GitHub repository** creates a private GitHub repository with a Python
+**Base GitHub repository** creates a public GitHub repository with a Python
 starter, repository checks, ownership files, and Backstage catalog metadata.
 The form collects the GitHub destination and repository name, project display
 name, description, catalog owner, and GitHub code owner.
@@ -30,5 +30,5 @@ pages, and a documentation-maintainer skill with repository instructions.
 ## Two documentation sites
 
 The root `mkdocs.yml` and `docs/` describe this blueprint library. Files under
-`backstage/base-app/skeleton/` are copied into newly generated repositories;
+`backstage/templates/base-app/skeleton/` are copied into newly generated repositories;
 their documentation describes those projects. Keep these purposes separate.

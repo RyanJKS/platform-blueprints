@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: example-platform
+  title: Example Platform Domain
+  description: Example platform area for exploring the catalog. Replace or remove before adopting real metadata.
+  tags:
+    - example
+spec:
+  owner: group:default/platform

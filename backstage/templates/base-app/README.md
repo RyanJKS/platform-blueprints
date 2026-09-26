@@ -1,16 +1,16 @@
 # Base repository template
 
-A Backstage Software Template for creating a private GitHub repository with a small Python entry point and shared repository conventions.
+A Backstage Software Template for creating a public GitHub repository with a small Python entry point and shared repository conventions.
 
 ## Use in Backstage
 
 1. Replace the template ownership placeholder `group:default/platform` with an existing catalog group responsible for maintaining this template.
 2. Configure your Backstage GitHub integration with permission to create repositories in the target account.
 3. Ensure the scaffolder provides `fetch:template`, `publish:github`, and `catalog:register`. The GitHub publish action requires the GitHub scaffolder backend module.
-4. Register this folder's `template.yaml` URL through Backstage's catalog import page or catalog locations configuration.
+4. Register `backstage/all.yaml` through Backstage’s catalog import page or catalog locations configuration; see [catalog setup](../../README.md). Do not also register this template separately.
 5. Select **Base GitHub repository** in Create, then provide the GitHub destination and repository name, project display name, description, catalog owner, and GitHub code owner.
 
-Running the template creates a private repository on the `main` branch and registers its `catalog-info.yaml` in Backstage. The GitHub code owner must already have write access; the template does not grant access.
+Running the template creates a public repository on the `main` branch and registers its `catalog-info.yaml` in Backstage. The GitHub code owner must already have write access; the template does not grant access.
 
 ## Included files
 
@@ -71,3 +71,7 @@ dependencies. Open the generated component's Docs tab to build and view its docs
 See the [TechDocs getting started guide](https://backstage.io/docs/features/techdocs/getting-started)
 for setup and production deployment guidance. Existing generated repositories
 must adopt these files and the catalog annotation separately.
+
+The existing template uses `repoVisibility: public`. Its form description and
+publish-step label still say private; visibility is controlled by the action input.
+This catalog reorganisation preserves that action input and generated output.

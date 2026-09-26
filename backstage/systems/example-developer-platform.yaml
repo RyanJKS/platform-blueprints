@@ -1,0 +1,11 @@
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: example-developer-platform
+  title: Example Developer Platform System
+  description: Example system belonging to the example platform domain. No running system is provisioned.
+  tags:
+    - example
+spec:
+  owner: group:default/platform
+  domain: domain:default/example-platform

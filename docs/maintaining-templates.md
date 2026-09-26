@@ -3,8 +3,9 @@
 ## Add or change a blueprint
 
 Keep each template descriptor beside its source skeleton, following the existing
-`backstage/base-app/` layout. Add new descriptors to `spec.targets` in the root
-Location document. These paths are relative to the root `catalog-info.yaml`.
+`backstage/templates/base-app/` layout. Add new descriptors to `spec.targets` in
+`backstage/all.yaml`. These paths are relative to `backstage/all.yaml`. See
+[catalog setup](backstage-setup.md) for registration and ownership requirements.
 
 Use unique template entity names. Retain a template's name and namespace when
 updating the same template; changing its identity can create another catalog
@@ -53,7 +54,7 @@ branch. Update the registered source deliberately when adopting a newer revision
 
 ## Retire a template or repository
 
-Remove a retired template from the root Location and remove any independent
+Remove a retired template from `backstage/all.yaml` and remove any independent
 registration. Depending on catalog orphan handling, an old entity may need to be
 removed from the catalog after it loses its source.
 

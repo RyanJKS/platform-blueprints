@@ -10,6 +10,8 @@ resource "azurerm_kubernetes_cluster" "this" {
   resource_group_name               = var.resource_group_name
   location                          = local.location
   dns_prefix                        = var.dns_prefix
+  dns_prefix_private_cluster        = var.dns_prefix_private_cluster
+  private_dns_zone_id               = var.private_dns_zone_id
   kubernetes_version                = var.kubernetes_version
   private_cluster_enabled           = var.private_cluster_enabled
   oidc_issuer_enabled               = var.oidc_issuer_enabled
@@ -53,6 +55,53 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
 
+  dynamic "kubelet_identity" {
+    for_each = var.kubelet_identity == null ? [] : [var.kubelet_identity]
+    content {
+      client_id                 = kubelet_identity.value.client_id
+      object_id                 = kubelet_identity.value.object_id
+      user_assigned_identity_id = kubelet_identity.value.user_assigned_identity_id
+    }
+  }
+
+  dynamic "network_profile" {
+    for_each = var.network_profile == null ? [] : [var.network_profile]
+    content {
+      network_plugin      = network_profile.value.network_plugin
+      network_plugin_mode = network_profile.value.network_plugin_mode
+      network_policy      = network_profile.value.network_policy
+      network_data_plane  = network_profile.value.network_data_plane
+      dns_service_ip      = network_profile.value.dns_service_ip
+      service_cidr        = network_profile.value.service_cidr
+      pod_cidr            = network_profile.value.pod_cidr
+      outbound_type       = network_profile.value.outbound_type
+      load_balancer_sku   = network_profile.value.load_balancer_sku
+    }
+  }
+
+  dynamic "ingress_application_gateway" {
+    for_each = var.ingress_application_gateway == null ? [] : [var.ingress_application_gateway]
+    content {
+      gateway_id = ingress_application_gateway.value.gateway_id
+    }
+  }
+
+  dynamic "key_management_service" {
+    for_each = var.key_management_service == null ? [] : [var.key_management_service]
+    content {
+      key_vault_key_id         = key_management_service.value.key_vault_key_id
+      key_vault_network_access = key_management_service.value.key_vault_network_access
+    }
+  }
+
+  dynamic "oms_agent" {
+    for_each = var.oms_agent == null ? [] : [var.oms_agent]
+    content {
+      log_analytics_workspace_id      = oms_agent.value.log_analytics_workspace_id
+      msi_auth_for_monitoring_enabled = oms_agent.value.msi_auth_for_monitoring_enabled
+    }
+  }
+
   dynamic "monitor_metrics" {
     for_each = var.monitor_metrics == null ? [] : [var.monitor_metrics]
     content {
@@ -69,13 +118,20 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
 
-  network_profile {
-    network_plugin      = "azure"
-    network_plugin_mode = "overlay"
-    load_balancer_sku   = "standard"
-  }
-
   lifecycle {
+    precondition {
+      condition     = (var.dns_prefix != null) != (var.dns_prefix_private_cluster != null)
+      error_message = "Set exactly one of dns_prefix or dns_prefix_private_cluster."
+    }
+    precondition {
+      condition     = var.dns_prefix_private_cluster == null || (var.private_cluster_enabled && var.private_dns_zone_id != null && !contains(["System", "None"], coalesce(var.private_dns_zone_id, "System")))
+      error_message = "dns_prefix_private_cluster requires a private cluster and a custom private_dns_zone_id."
+    }
+    precondition {
+      condition     = var.kubelet_identity == null || length(var.identity_ids) > 0
+      error_message = "A custom kubelet_identity requires a user-assigned control-plane identity in identity_ids."
+    }
+
     precondition {
       condition     = !var.default_node_pool.auto_scaling_enabled || var.default_node_pool.min_count <= var.default_node_pool.max_count
       error_message = "Autoscaling min_count must not exceed max_count."

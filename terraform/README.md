@@ -44,9 +44,12 @@ separately; a catalog revision does not pin an arbitrary module source.
 
 Azure modules are grouped under `networking/` and `aks/` where related modules exist. `database/` reserves space for future service-specific modules. Grouping directories contain no `.tf` files.
 
-- [AKS Argo CD extension](azure/aks/argocd_extension/README.md): install Argo CD on an existing AKS cluster.
+- [Shared Helm release](shared/helm_release/README.md): install any Helm chart on an existing Kubernetes cluster.
+- [Shared Kubernetes manifest](shared/kubernetes_manifest/README.md): apply Kubernetes resources, including Argo CD Applications.
+- [AKS extension](azure/aks/extension/README.md): install Azure-managed Kubernetes extensions on an existing AKS cluster.
 - [AKS migration guidance](azure/aks/README.md#migration): update existing cluster, extension, and networking consumers.
 
+- [Azure Application Gateway](azure/networking/application_gateway/README.md): create a v2 gateway with TLS, WAF, backend pools, and routing.
 - [Azure network security group](azure/networking/nsg/README.md): create an NSG with configurable custom rules.
 - [Azure RBAC assignment](azure/rbac/README.md): assign roles to users, groups, service principals, and managed identities.
 - [Azure DNS zone](azure/networking/dns/README.md): create a public DNS zone and expose its authoritative nameservers.

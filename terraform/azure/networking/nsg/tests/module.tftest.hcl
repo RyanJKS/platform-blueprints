@@ -107,18 +107,22 @@ run "reject_duplicate_priority" {
   command = plan
   variables {
     rules = {
-      first = { priority = 1001
-        direction             = "Inbound"
-        access                = "Allow"
-        protocol              = "Tcp"
-        source_address_prefix = "203.0.113.10/32"
-      destination_port_range = "443" }
-      second = { priority = 1001
-        direction             = "Inbound"
-        access                = "Allow"
-        protocol              = "Tcp"
-        source_address_prefix = "203.0.113.10/32"
-      destination_port_range = "443" }
+      first = {
+        priority               = 1001
+        direction              = "Inbound"
+        access                 = "Allow"
+        protocol               = "Tcp"
+        source_address_prefix  = "203.0.113.10/32"
+        destination_port_range = "443"
+      }
+      second = {
+        priority               = 1001
+        direction              = "Inbound"
+        access                 = "Allow"
+        protocol               = "Tcp"
+        source_address_prefix  = "203.0.113.10/32"
+        destination_port_range = "443"
+      }
     }
   }
   expect_failures = [var.rules]

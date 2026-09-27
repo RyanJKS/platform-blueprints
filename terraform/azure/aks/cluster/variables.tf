@@ -34,9 +34,9 @@ variable "tags" {
 }
 
 variable "dns_prefix" {
-  description = "The DNS prefix for the AKS cluster."
+  description = "The DNS prefix for the AKS cluster. Set exactly one of dns_prefix or dns_prefix_private_cluster."
   type        = string
-  nullable    = false
+  default     = null
 }
 
 variable "kubernetes_version" {
@@ -181,4 +181,73 @@ variable "web_app_routing" {
     condition     = var.web_app_routing == null ? true : contains(["External", "Internal", "None", "AnnotationControlled"], var.web_app_routing.default_nginx_controller)
     error_message = "The default NGINX controller must be External, Internal, None, or AnnotationControlled."
   }
+}
+
+variable "dns_prefix_private_cluster" {
+  description = "Private cluster DNS prefix. Use instead of dns_prefix with a private cluster and a custom private DNS zone."
+  type        = string
+  default     = null
+}
+
+variable "private_dns_zone_id" {
+  description = "Private DNS zone resource ID, System, or None. Null uses the AKS default. Custom zones require caller-managed identity permissions."
+  type        = string
+  default     = null
+}
+
+variable "kubelet_identity" {
+  description = "Existing kubelet identity. Requires a user-assigned control-plane identity and caller-managed assignment permissions."
+  type = object({
+    client_id                 = string
+    object_id                 = string
+    user_assigned_identity_id = string
+  })
+  default = null
+}
+
+variable "network_profile" {
+  description = "AKS networking configuration. The default preserves Azure CNI overlay networking."
+  type = object({
+    network_plugin      = string
+    network_plugin_mode = optional(string)
+    network_policy      = optional(string)
+    network_data_plane  = optional(string)
+    dns_service_ip      = optional(string)
+    service_cidr        = optional(string)
+    pod_cidr            = optional(string)
+    outbound_type       = optional(string, "loadBalancer")
+    load_balancer_sku   = optional(string, "standard")
+  })
+  default  = { network_plugin = "azure", network_plugin_mode = "overlay" }
+  nullable = false
+}
+
+variable "ingress_application_gateway" {
+  description = "Application Gateway ingress using an existing gateway. Null disables the addon."
+  type = object({
+    gateway_id = string
+  })
+  default = null
+}
+
+variable "key_management_service" {
+  description = "Kubernetes secret encryption with an existing Key Vault key. Null disables KMS. Key permissions and private connectivity are caller-managed."
+  type = object({
+    key_vault_key_id         = string
+    key_vault_network_access = optional(string, "Public")
+  })
+  default = null
+  validation {
+    condition     = var.key_management_service == null ? true : contains(["Public", "Private"], var.key_management_service.key_vault_network_access)
+    error_message = "key_vault_network_access must be Public or Private."
+  }
+}
+
+variable "oms_agent" {
+  description = "Container Insights with an existing Log Analytics workspace. Null disables the addon."
+  type = object({
+    log_analytics_workspace_id      = string
+    msi_auth_for_monitoring_enabled = optional(bool, true)
+  })
+  default = null
 }

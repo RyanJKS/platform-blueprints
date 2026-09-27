@@ -9,7 +9,7 @@ variables {
 run "generated_name" {
   command = plan
   assert {
-    condition     = azurerm_kubernetes_cluster_extension.extension.name == "paymentsuksdevextension"
+    condition     = azurerm_kubernetes_cluster_extension.extension.name == "paymentsuksdevext"
     error_message = "The extension must use the shared name prefix."
   }
 }

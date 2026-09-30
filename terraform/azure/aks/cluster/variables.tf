@@ -251,3 +251,97 @@ variable "oms_agent" {
   })
   default = null
 }
+
+variable "additional_node_pools" {
+  description = "Additional autoscaled Linux user pools, keyed by pool name. Subnets inherit the default pool subnet when omitted."
+  type = map(object({
+    vm_size                       = string
+    min_count                     = number
+    max_count                     = number
+    vnet_subnet_id                = optional(string)
+    zones                         = optional(list(string), ["1", "2", "3"])
+    max_pods                      = optional(number)
+    os_disk_type                  = optional(string, "Managed")
+    os_disk_size_gb               = optional(number)
+    node_labels                   = optional(map(string), {})
+    node_taints                   = optional(list(string), [])
+    fips_enabled                  = optional(bool, false)
+    host_encryption_enabled       = optional(bool, false)
+    temporary_name_for_rotation   = optional(string)
+    priority                      = optional(string, "Regular")
+    eviction_policy               = optional(string, "Delete")
+    spot_max_price                = optional(number, -1)
+    max_surge                     = optional(string)
+    max_unavailable               = optional(string)
+    drain_timeout_in_minutes      = optional(number, 60)
+    node_soak_duration_in_minutes = optional(number, 3)
+    undrainable_node_behavior     = optional(string, "Schedule")
+  }))
+  default  = {}
+  nullable = false
+
+  validation {
+    condition     = alltrue([for name, pool in var.additional_node_pools : can(regex("^[a-z][a-z0-9]{0,11}$", name))])
+    error_message = "Pool names must contain 1 to 12 lowercase letters or digits and start with a letter."
+  }
+  validation {
+    condition = alltrue([for pool in values(var.additional_node_pools) :
+      pool.min_count >= 0 && floor(pool.min_count) == pool.min_count &&
+      pool.max_count >= 1 && floor(pool.max_count) == pool.max_count && pool.min_count <= pool.max_count
+    ])
+    error_message = "Pool counts must be integers with 0 <= min_count <= max_count and max_count >= 1."
+  }
+  validation {
+    condition     = alltrue([for pool in values(var.additional_node_pools) : contains(["Regular", "Spot"], pool.priority) && contains(["Delete", "Deallocate"], pool.eviction_policy) && (pool.spot_max_price == -1 || pool.spot_max_price >= 0)])
+    error_message = "Use Regular or Spot priority, Delete or Deallocate eviction, and a Spot price of -1 or greater than or equal to zero."
+  }
+  validation {
+    condition     = alltrue([for pool in values(var.additional_node_pools) : contains(["Managed", "Ephemeral"], pool.os_disk_type)])
+    error_message = "os_disk_type must be Managed or Ephemeral."
+  }
+  validation {
+    condition     = alltrue([for pool in values(var.additional_node_pools) : pool.max_pods == null ? true : pool.max_pods >= 10 && pool.max_pods <= 250 && floor(pool.max_pods) == pool.max_pods])
+    error_message = "max_pods must be an integer between 10 and 250."
+  }
+  validation {
+    condition     = alltrue([for pool in values(var.additional_node_pools) : pool.os_disk_size_gb == null ? true : pool.os_disk_size_gb > 0 && floor(pool.os_disk_size_gb) == pool.os_disk_size_gb])
+    error_message = "os_disk_size_gb must be a positive integer."
+  }
+  validation {
+    condition     = alltrue([for pool in values(var.additional_node_pools) : pool.temporary_name_for_rotation == null ? true : can(regex("^[a-z][a-z0-9]{0,11}$", pool.temporary_name_for_rotation))])
+    error_message = "Rotation names must contain 1 to 12 lowercase letters or digits and start with a letter."
+  }
+  validation {
+    condition     = alltrue([for pool in values(var.additional_node_pools) : !(pool.max_surge != null && pool.max_unavailable != null) && (pool.priority != "Spot" || (pool.max_surge == null && pool.max_unavailable == null))])
+    error_message = "Set only one of max_surge and max_unavailable. Spot pools do not support these upgrade settings."
+  }
+  validation {
+    condition     = alltrue([for pool in values(var.additional_node_pools) : contains(["Schedule", "Cordon"], pool.undrainable_node_behavior)])
+    error_message = "undrainable_node_behavior must be Schedule or Cordon."
+  }
+}
+
+variable "container_insights" {
+  description = "Optional Container Insights data collection rule for the oms_agent workspace. Requires oms_agent with managed identity authentication."
+  type = object({
+    streams                  = optional(set(string), ["Microsoft-ContainerInsights-Group-Default"])
+    data_collection_interval = optional(string, "1m")
+    namespace_filtering_mode = optional(string, "Off")
+    namespaces               = optional(list(string), [])
+    enable_container_log_v2  = optional(bool, true)
+  })
+  default = null
+
+  validation {
+    condition     = var.container_insights == null ? true : contains(["1m", "5m", "10m", "15m", "30m"], var.container_insights.data_collection_interval)
+    error_message = "data_collection_interval must be 1m, 5m, 10m, 15m, or 30m."
+  }
+  validation {
+    condition     = var.container_insights == null ? true : contains(["Off", "Include", "Exclude"], var.container_insights.namespace_filtering_mode)
+    error_message = "namespace_filtering_mode must be Off, Include, or Exclude."
+  }
+  validation {
+    condition     = var.container_insights == null ? true : length(var.container_insights.streams) > 0
+    error_message = "At least one Container Insights stream is required."
+  }
+}

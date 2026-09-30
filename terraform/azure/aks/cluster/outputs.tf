@@ -133,3 +133,13 @@ output "oms_agent_identity" {
   description = "The Container Insights addon identity, or null when disabled."
   value       = try(azurerm_kubernetes_cluster.this.oms_agent[0].oms_agent_identity, null)
 }
+
+output "additional_node_pool_ids" {
+  description = "Additional node pool resource IDs, keyed by pool name."
+  value       = { for name, pool in azurerm_kubernetes_cluster_node_pool.this : name => pool.id }
+}
+
+output "container_insights_data_collection_rule_id" {
+  description = "The managed Container Insights DCR ID, or null when disabled."
+  value       = try(azurerm_monitor_data_collection_rule.container_insights[0].id, null)
+}

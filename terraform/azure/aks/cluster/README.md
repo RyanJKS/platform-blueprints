@@ -157,6 +157,131 @@ This replaces the previous standalone node pool inputs. Move those inputs into
 `default_node_pool`, renaming `node_pool_name` to `name`. All other attribute
 names and defaults are unchanged.
 
+## Additional node pools
+
+Use `additional_node_pools` for autoscaled Linux user pools. The map key is the
+Azure pool name. Existing callers retain the same system pool and create no
+additional pools unless configured. For example, add these inputs to your module
+or Terragrunt configuration:
+
+```hcl
+default_node_pool = {
+  name       = "system"
+  vm_size    = "Standard_D4s_v5"
+  node_count = 3
+  zones      = ["1", "2", "3"]
+  # vnet_subnet_id = dependency.network.outputs.aks_subnet_id
+}
+
+additional_node_pools = {
+  general = {
+    vm_size                     = "Standard_D8s_v5"
+    min_count                   = 3
+    max_count                   = 20
+    temporary_name_for_rotation = "generaltemp"
+  }
+  memory = {
+    vm_size                     = "Standard_E16s_v5"
+    min_count                   = 1
+    max_count                   = 10
+    temporary_name_for_rotation = "memorytemp"
+    node_labels                 = { workload = "memory" }
+    node_taints                 = ["workload=memory:NoSchedule"]
+  }
+  gpu = {
+    vm_size                     = "Standard_NC24ads_A100_v4"
+    min_count                   = 0
+    max_count                   = 5
+    temporary_name_for_rotation = "gputemp"
+    node_labels                 = { workload = "gpu" }
+    node_taints                 = ["sku=gpu:NoSchedule"]
+    # Override zones to match GPU availability in your region.
+  }
+  spot = {
+    vm_size                     = "Standard_D8s_v5"
+    min_count                   = 0
+    max_count                   = 20
+    priority                    = "Spot"
+    eviction_policy             = "Delete"
+    spot_max_price              = -1
+    temporary_name_for_rotation = "spottemp"
+  }
+}
+```
+
+Every additional pool requires `vm_size`, `min_count`, and `max_count`. Minimums
+may be zero; maximums must be positive. Pools inherit the default pool subnet
+unless `vnet_subnet_id` is set. Zones default to `["1", "2", "3"]`; override them
+for regional SKU availability. Validate VM quotas and capacity before deployment.
+
+Optional settings include `max_pods`, `os_disk_size_gb`, `node_labels`,
+`node_taints`, `fips_enabled`, and `host_encryption_enabled`. Both security flags
+default to false. `os_disk_type` defaults to `Managed`; select `Ephemeral` only
+with a compatible VM size and sufficient local disk capacity. Rotation names are
+optional, must be unique, and must not match pool names or the default pool's
+rotation name. Set one before changes that require node pool rotation.
+
+Regular pools default to a 60-minute drain timeout, `max_surge = "10%"`, a
+3-minute soak, and `undrainable_node_behavior = "Schedule"`. Override these with
+`drain_timeout_in_minutes`, `max_surge`, `node_soak_duration_in_minutes`, and
+`undrainable_node_behavior`. Set `max_unavailable` instead of `max_surge` to use
+unavailable-node upgrades; explicitly setting both is rejected. Spot pools omit
+upgrade settings because they do not support surge upgrades. Spot priority uses
+`Delete` eviction and `spot_max_price = -1` by default.
+
+The autoscaler owns additional pool capacity after creation. Terraform ignores
+changes to `node_count`, `orchestrator_version`, and `workload_runtime` on these
+pools. `kubernetes_version` supplies their initial version; configure AKS or Fleet
+upgrade management separately. This module does not create an upgrade schedule.
+The default system pool keeps its existing version and capacity behavior.
+
+Use node selectors or affinity and matching tolerations for memory and GPU
+workloads. GPU workloads also need the NVIDIA device plugin and GPU resource
+requests. AKS adds its Spot priority label and `kubernetes.azure.com/scalesetpriority=spot:NoSchedule`
+taint; Spot workloads need the matching toleration. A zero-node pool scales up
+only when pending workloads can be scheduled on it. GPU setup and workload
+scheduling are outside this module.
+
+`additional_node_pool_ids` returns resource IDs keyed by pool name.
+`minimum_node_count` continues to describe only the default pool, so optional,
+tainted, GPU, and Spot capacity is not counted toward addon capacity checks.
+
+## Container Insights data collection
+
+Set `container_insights = {}` alongside `oms_agent` to create a Container Insights
+DCR and its cluster association using the same existing Log Analytics workspace:
+
+```hcl
+oms_agent = {
+  log_analytics_workspace_id      = dependency.monitoring.outputs.workspace_id
+  msi_auth_for_monitoring_enabled = true
+}
+
+container_insights = {
+  streams                  = ["Microsoft-ContainerInsights-Group-Default"]
+  data_collection_interval = "1m"
+  namespace_filtering_mode = "Off"
+  namespaces               = []
+  enable_container_log_v2   = true
+}
+```
+
+The example shows the defaults. `container_insights = null` creates no rule or
+association and preserves existing `oms_agent` behavior. A managed rule requires
+`oms_agent` with managed identity authentication enabled. Collection intervals
+accept `1m`, `5m`, `10m`, `15m`, or `30m`. Namespace filtering accepts `Off`,
+`Include`, or `Exclude`. Supply the namespace list for filtering and select
+supported Container Insights streams for your collection requirements. Namespace
+filtering applies only to tables that support it, not all cluster telemetry.
+
+The rule name is `MSCI--<cluster-name>` and the association name is
+`ContainerInsightsExtension`. Import existing rules and associations into these
+resource addresses before enabling this option if Azure or another deployment
+already manages them. Avoid overlapping rules that duplicate ingestion.
+The module creates no workspace or role assignments. This DCR is separate from
+managed Prometheus configuration. `container_insights_data_collection_rule_id`
+returns the rule ID, or null when disabled.
+
 ## Outputs
 
 - `minimum_node_count`: Configured node count or autoscaling minimum for addon capacity validation.
@@ -322,7 +447,7 @@ workspaces, federated identity credentials, or Argo CD applications. Optional cl
 ## Tests
 
 With Terraform >= 1.7.0, run `terraform init -backend=false`, `terraform validate`,
-and `terraform test` in this directory. The tests cover addon defaults, configured routing and metrics, Entra access, autoscaling limits, and capacity outputs. All tests use mocked providers and create no Azure resources.
+and `terraform test` in this directory. The tests cover addon defaults, configured routing and metrics, Entra access, autoscaling limits, and capacity outputs. The tests also cover mixed user pools, zero-node GPU and Spot pools, invalid pool settings, and Container Insights configuration and prerequisites. All tests use mocked providers and create no Azure resources.
 
 ## Shared solution settings
 

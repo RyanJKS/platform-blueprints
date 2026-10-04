@@ -59,10 +59,11 @@ Azure modules are grouped under `networking/` and `aks/` where related modules e
 - [Azure resource group](azure/resource_group/README.md): create a resource group
   with optional tags and caller-managed provider configuration.
 - [Azure virtual network](azure/networking/vnet/README.md): Create an Azure virtual network with optional subnets.
-- [Azure managed identity](azure/managed_identity/README.md): Create a user-assigned Azure managed identity.
+- [Azure managed identity](azure/managed_identity/README.md): Create a user-assigned Azure managed identity with optional federated credentials.
+- [Azure Log Analytics workspace](azure/log_analytics/README.md): Create a workspace with retention, ingestion limits, and access controls.
 - [Azure Key Vault](azure/keyvault/README.md): Create an Azure Key Vault with RBAC authorization and purge protection.
 - [Azure storage account](azure/storage_account/README.md): Create a storage account with HNS, SFTP, NFS, data protection, and access controls.
-- [Microsoft Entra security group](azure/ad_group/README.md): Create a Microsoft Entra ID security group with optional owners and members.
+- [Microsoft Entra security groups](azure/ad_group/README.md): Create security groups from a map keyed by group name, with per-group owners and members.
 - [Azure Kubernetes Service](azure/aks/cluster/README.md): Create an AKS cluster with a managed identity and a system node pool.
 
 Azure resource modules require AzureRM >= 5.0.0. Microsoft Entra groups require

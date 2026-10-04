@@ -1,32 +1,15 @@
-variable "display_name" {
-  description = "The display name of the security group."
-  type        = string
-  nullable    = false
-}
+variable "groups" {
+  description = "Security groups keyed by display name, with optional descriptions, owners, members, and duplicate-name prevention."
+  type = map(object({
+    description             = optional(string)
+    owners                  = optional(set(string), [])
+    members                 = optional(set(string), [])
+    prevent_duplicate_names = optional(bool, true)
+  }))
+  nullable = false
 
-variable "description" {
-  description = "The description of the security group."
-  type        = string
-  default     = null
-}
-
-variable "owners" {
-  description = "Object IDs of group owners."
-  type        = set(string)
-  default     = []
-  nullable    = false
-}
-
-variable "members" {
-  description = "Object IDs of direct group members."
-  type        = set(string)
-  default     = []
-  nullable    = false
-}
-
-variable "prevent_duplicate_names" {
-  description = "Whether to reject an existing group with the same display name."
-  type        = bool
-  default     = true
-  nullable    = false
+  validation {
+    condition     = alltrue([for name in keys(var.groups) : length(trimspace(name)) > 0])
+    error_message = "Each groups key must be a nonempty group display name."
+  }
 }

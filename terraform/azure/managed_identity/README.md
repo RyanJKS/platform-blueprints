@@ -1,6 +1,6 @@
 <!-- Frontmatter
 name: Azure managed identity
-description: Create a user-assigned Azure managed identity.
+description: Create a user-assigned Azure managed identity with optional federated credentials.
 tags: [azure, module]
 -->
 
@@ -23,6 +23,11 @@ Pin the selected provider version in the consuming root module lock file.
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
 | `location` | `string` | No | `null` | The Azure region in which to create the resource. |
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
+| `federated_identity_credentials` | `map(object)` | No | `{}` | Credentials with required issuer and subject, plus an optional audience. |
+
+The optional `federated_identity_credentials` input is a map keyed by credential
+name. It defaults to `{}`, which creates no federated credentials. See the
+federation example below for its fields.
 
 ## Outputs
 
@@ -33,6 +38,7 @@ Pin the selected provider version in the consuming root module lock file.
 - `client_id`: Client id.
 - `principal_id`: Principal id.
 - `tenant_id`: Tenant id.
+- `federated_identity_credential_ids`: Credential resource IDs keyed by credential name; empty when no credentials are configured.
 
 ## Terragrunt usage
 
@@ -61,9 +67,61 @@ Replace the source revision with a published tag or commit. Replace example reso
 names and object IDs with your own values. Pass outputs from other units through
 Terragrunt `dependency` blocks when composing these modules.
 
+## Federated identity credentials
+
+Each credential value has this type:
+
+```hcl
+object({
+  issuer   = string
+  subject  = string
+  audience = optional(list(string), ["api://AzureADTokenExchange"])
+})
+```
+
+For an AKS workload, add these inputs to the managed identity unit:
+
+```hcl
+dependency "aks" {
+  config_path = "../aks"
+}
+
+inputs = {
+  # Include the settings and resource_group_name inputs shown above.
+  federated_identity_credentials = {
+    payments-api = {
+      issuer  = dependency.aks.outputs.oidc_issuer_url
+      subject = "system:serviceaccount:payments:api"
+    }
+  }
+}
+```
+
+The map key becomes the credential name. Names must satisfy Azure naming rules
+and be unique within the identity. Issuer and subject must exactly match the
+incoming token claims. Azure supports exactly one audience per credential.
+Omitting `audience` uses `api://AzureADTokenExchange`.
+
+Enable OIDC and workload identity on AKS. Annotate the Kubernetes service account
+with `azure.workload.identity/client-id` set to this module's `client_id`, and label
+the pod template with `azure.workload.identity/use: "true"`. Configure Kubernetes
+resources and the identity's Azure role assignments separately. Avoid a circular
+Terragrunt dependency if the AKS unit already depends on this identity; use a
+separate workload identity unit that depends on the existing cluster.
+
+For GitHub Actions, use `https://token.actions.githubusercontent.com` as the issuer
+and the exact repository, branch, or environment subject required by the workflow.
+Grant the workflow `id-token: write` and configure Azure login with the identity's
+client ID, tenant ID, and subscription ID. Federated credentials allow token
+exchange; they do not grant Azure resource permissions.
+
+Removing a credential from the map deletes that trust relationship. Adding these
+optional inputs does not change the existing identity resource address or outputs.
+
 ## Behavior and upgrade considerations
 
-Role assignments and federated identity credentials are caller-managed. Use `id` when
+Role assignments are caller-managed. Optional federated credentials are managed
+by this module through `federated_identity_credentials`. Use `id` when
 attaching this identity to AKS and `principal_id` when assigning Azure roles. Replacing
 the identity changes its principal and client IDs.
 

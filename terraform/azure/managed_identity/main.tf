@@ -9,3 +9,13 @@ resource "azurerm_user_assigned_identity" "this" {
   location            = local.location
   tags                = var.tags
 }
+
+resource "azurerm_federated_identity_credential" "this" {
+  for_each = var.federated_identity_credentials
+
+  name                      = each.key
+  user_assigned_identity_id = azurerm_user_assigned_identity.this.id
+  issuer                    = each.value.issuer
+  subject                   = each.value.subject
+  audience                  = each.value.audience
+}

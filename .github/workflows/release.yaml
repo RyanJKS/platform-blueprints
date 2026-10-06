@@ -1,0 +1,28 @@
+name: Publish release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish versioned release
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yaml
+          commitish: ${{ github.sha }}
+          publish: true
+          disable-autolabeler: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

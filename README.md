@@ -1,5 +1,21 @@
 # Platform Blueprints
 
+## Releases
+
+Every push to `main`, including a pull request merge, publishes a GitHub release
+and a matching `vMAJOR.MINOR.PATCH` tag at that commit. Add a `major`, `minor`, or
+`patch` label to a pull request before merging to select the version bump. The
+highest matching label wins; unlabeled changes default to a patch release.
+Without an existing release, the first patch release is `v0.0.1`.
+
+Other repositories can pin reusable workflows to a release tag, for example:
+
+```yaml
+jobs:
+  checks:
+    uses: RyanJKS/platform-blueprints/.github/workflows/terraform-checks.yml@v0.0.1
+```
+
 My personal “one for all” repository for reusable code, templates, blueprints, and best practices across my apps.
 
 This is a growing collection of building blocks, rather than a single application. It gives me one place to keep proven patterns, improve them over time, and reuse them without starting from scratch.

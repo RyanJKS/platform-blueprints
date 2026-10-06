@@ -61,17 +61,6 @@ variable "daily_quota_gb" {
   }
 }
 
-variable "reservation_capacity_in_gb_per_day" {
-  description = "The daily commitment in GB. Required only for the CapacityReservation SKU."
-  type        = number
-  default     = null
-
-  validation {
-    condition     = var.reservation_capacity_in_gb_per_day == null ? true : contains([50, 100, 200, 300, 400, 500, 1000, 2000, 5000, 10000, 25000, 50000], var.reservation_capacity_in_gb_per_day)
-    error_message = "reservation_capacity_in_gb_per_day must be one of: 50, 100, 200, 300, 400, 500, 1000, 2000, 5000, 10000, 25000, 50000."
-  }
-}
-
 variable "local_authentication_enabled" {
   description = "Allow shared-key authentication in addition to Microsoft Entra authentication. Disabled by default."
   type        = bool

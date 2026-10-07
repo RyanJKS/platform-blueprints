@@ -63,6 +63,7 @@ Azure modules are grouped under `networking/` and `aks/` where related modules e
 - [Azure Log Analytics workspace](azure/log_analytics/README.md): Create a workspace with retention, ingestion limits, and access controls.
 - [Azure Key Vault](azure/keyvault/README.md): Create an Azure Key Vault with RBAC authorization and purge protection.
 - [Azure storage account](azure/storage_account/README.md): Create a storage account with HNS, SFTP, NFS, data protection, and access controls.
+- [Azure Container Registry](azure/container_registry/README.md): Create a registry with access controls, managed identity, and optional Premium networking and replication.
 - [Microsoft Entra security groups](azure/ad_group/README.md): Create security groups from a map keyed by group name, with per-group owners and members.
 - [Azure Kubernetes Service](azure/aks/cluster/README.md): Create an AKS cluster with a managed identity and a system node pool.
 

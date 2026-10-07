@@ -14,34 +14,34 @@ Requires Terraform >= 1.3.0 and AzureRM >= 5.0.0. The caller configures the prov
 
 Configuration maps use their keys as Azure configuration names. References between maps must use those keys.
 
-| Input | Default | Description |
-| --- | --- | --- |
-| `settings` | Required | Object containing `name_prefix` and `region_long`. Accepts the shared solution settings output. |
-| `resource_group_name` | Required | Existing resource group. |
-| `subnet_id` | Required | Dedicated Application Gateway subnet. |
-| `name` | `null` | Defaults to `${settings.name_prefix}agw`. |
-| `location` | `null` | Defaults to `settings.region_long`. |
-| `tags` | `{}` | Tags for the gateway and the optional managed public IP. |
-| `sku` | `{}` | `tier` defaults to `"Standard_v2"`; also supports `"WAF_v2"`. Fixed `capacity` defaults to `2`. |
-| `autoscale_configuration` | `null` | Optional `min_capacity` (default `2`) and `max_capacity` (default `10`). When configured, fixed SKU capacity is omitted. |
-| `zones` | `[]` | Availability zones supported in the chosen region. |
-| `http2_enabled` | `true` | Enable HTTP/2 on the frontend. |
-| `identity_ids` | `[]` | User-assigned identities for Key Vault certificate access. |
-| `firewall_policy_id` | `null` | Required for `WAF_v2`; must be omitted for `Standard_v2`. Create the policy in the caller. |
-| `add_public_ip` | `false` | Create and attach a Standard static public IP using the gateway region, zones, and tags. |
-| `public_ip_name` | `null` | Managed public IP name. Defaults to `${settings.name_prefix}pip`. |
-| `public_ip_configuration_name` | `"public"` | Managed frontend name used by listeners. Overrides a matching map key when `add_public_ip` is enabled. |
-| `frontend_ip_configurations` | `{}` | Map of `{ public_ip_address_id }` or `{ private_ip_address }`. Private frontends use `subnet_id` and static allocation. At least one entry is required unless `add_public_ip` is enabled. |
-| `frontend_ports` | Required | Map of names to integer ports, such as `{ http = 80 }`. |
-| `backend_address_pools` | Required | Map of objects with optional `fqdns` and `ip_addresses` sets. Both default to empty. |
-| `backend_http_settings` | Required | Map of backend settings described below. |
-| `http_listeners` | Required | Map of listener settings described below. |
-| `request_routing_rules` | Required | Map of routing rules described below. |
-| `url_path_maps` | `{}` | Map of default backends and ordered path rules. |
-| `probes` | `{}` | Map of custom health probe settings. |
-| `ssl_certificates` | `{}` | Map of `{ key_vault_secret_id }`; requires a gateway managed identity. Use versionless certificate **secret** IDs for rotation. |
-| `trusted_root_certificates` | `{}` | Map of names to base64-encoded backend root certificates. |
-| `ssl_policy_name` | `"AppGwSslPolicy20220101S"` | Predefined frontend TLS policy. |
+| Input                          | Default                     | Description                                                                                                                                                                               |
+| ------------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `settings`                     | Required                    | Object containing `name_prefix` and `region_long`. Accepts the shared solution settings output.                                                                                           |
+| `resource_group_name`          | Required                    | Existing resource group.                                                                                                                                                                  |
+| `subnet_id`                    | Required                    | Dedicated Application Gateway subnet.                                                                                                                                                     |
+| `name`                         | `null`                      | Defaults to `${settings.name_prefix}agw`.                                                                                                                                                 |
+| `location`                     | `null`                      | Defaults to `settings.region_long`.                                                                                                                                                       |
+| `tags`                         | `{}`                        | Tags for the gateway and the optional managed public IP.                                                                                                                                  |
+| `sku`                          | `{}`                        | `tier` defaults to `"Standard_v2"`; also supports `"WAF_v2"`. Fixed `capacity` defaults to `2`.                                                                                           |
+| `autoscale_configuration`      | `null`                      | Optional `min_capacity` (default `2`) and `max_capacity` (default `10`). When configured, fixed SKU capacity is omitted.                                                                  |
+| `zones`                        | `[]`                        | Availability zones supported in the chosen region.                                                                                                                                        |
+| `http2_enabled`                | `true`                      | Enable HTTP/2 on the frontend.                                                                                                                                                            |
+| `identity_ids`                 | `[]`                        | User-assigned identities for Key Vault certificate access.                                                                                                                                |
+| `firewall_policy_id`           | `null`                      | Required for `WAF_v2`; must be omitted for `Standard_v2`. Create the policy in the caller.                                                                                                |
+| `add_public_ip`                | `false`                     | Create and attach a Standard static public IP using the gateway region, zones, and tags.                                                                                                  |
+| `public_ip_name`               | `null`                      | Managed public IP name. Defaults to `${settings.name_prefix}pip`.                                                                                                                         |
+| `public_ip_configuration_name` | `"public"`                  | Managed frontend name used by listeners. Overrides a matching map key when `add_public_ip` is enabled.                                                                                    |
+| `frontend_ip_configurations`   | `{}`                        | Map of `{ public_ip_address_id }` or `{ private_ip_address }`. Private frontends use `subnet_id` and static allocation. At least one entry is required unless `add_public_ip` is enabled. |
+| `frontend_ports`               | Required                    | Map of names to integer ports, such as `{ http = 80 }`.                                                                                                                                   |
+| `backend_address_pools`        | Required                    | Map of objects with optional `fqdns` and `ip_addresses` sets. Both default to empty.                                                                                                      |
+| `backend_http_settings`        | Required                    | Map of backend settings described below.                                                                                                                                                  |
+| `http_listeners`               | Required                    | Map of listener settings described below.                                                                                                                                                 |
+| `request_routing_rules`        | Required                    | Map of routing rules described below.                                                                                                                                                     |
+| `url_path_maps`                | `{}`                        | Map of default backends and ordered path rules.                                                                                                                                           |
+| `probes`                       | `{}`                        | Map of custom health probe settings.                                                                                                                                                      |
+| `ssl_certificates`             | `{}`                        | Map of `{ key_vault_secret_id }`; requires a gateway managed identity. Use versionless certificate **secret** IDs for rotation.                                                           |
+| `trusted_root_certificates`    | `{}`                        | Map of names to base64-encoded backend root certificates.                                                                                                                                 |
+| `ssl_policy_name`              | `"AppGwSslPolicy20220101S"` | Predefined frontend TLS policy.                                                                                                                                                           |
 
 ### Backends, listeners, and routing
 
@@ -56,6 +56,82 @@ Each path map requires `default_backend_address_pool_name`, `default_backend_htt
 Each probe supports `protocol` (`"Http"`), `path` (`"/"`), `host`, `pick_host_name_from_backend_http_settings` (`false`), `interval` (`30` seconds), `timeout` (`30` seconds), `unhealthy_threshold` (`3`), and optional `port`. Set `host` or enable hostname selection. Optional `match` accepts `status_code` (`["200-399"]`) and `body`.
 
 This module uses an external WAF policy and Key Vault frontend certificates. It does not expose inline WAF rules, uploaded PFX files, redirects, rewrite rules, or private-link configuration.
+
+## Terraform example
+
+```hcl
+resource "azurerm_application_gateway" "agic" {
+  name                = "agw-jkslabs"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+
+  sku {                    # Select the gateway edition and instance count.
+    name     = "Standard_v2" # AGIC-compatible v2 gateway without WAF.
+    tier     = "Standard_v2" # Must match the selected SKU.
+    capacity = 1             # Fixed single instance for this learning lab.
+  }
+
+  gateway_ip_configuration {                  # Connect gateway instances to your VNet.
+    name      = "gateway-ip-config"            # Internal configuration identifier.
+    subnet_id = var.app_gateway_subnet_id      # Dedicated Application Gateway subnet.
+  }
+
+  frontend_ip_configuration {                 # Define the address clients connect to.
+    name                 = "public-frontend"   # Referenced by the listener below.
+    public_ip_address_id = var.public_ip_id    # Existing Standard, static public IP.
+  }
+
+  frontend_port {          # Define a port the gateway accepts traffic on.
+    name = "http-port"     # Referenced by the listener below.
+    port = 80              # Start with HTTP; AGIC can configure HTTPS later.
+  }
+
+  backend_address_pool {   # Required initial pool; AGIC later supplies app backends.
+    name = "bootstrap-pool" # Empty initially because Terraform does not select Pods.
+  }
+
+  backend_http_settings {             # Define how the gateway connects to backends.
+    name                  = "bootstrap-http-settings" # Referenced by the routing rule.
+    cookie_based_affinity = "Disabled" # Do not pin clients to a particular backend.
+    port                  = 80         # Placeholder backend port; AGIC derives app ports.
+    protocol              = "Http"     # Placeholder gateway-to-backend protocol.
+    request_timeout       = 30         # Backend response timeout, in seconds.
+  }
+
+  http_listener {                                   # Accept incoming HTTP requests.
+    name                           = "bootstrap-listener" # Referenced by the routing rule.
+    frontend_ip_configuration_name = "public-frontend"    # Listen on the public frontend.
+    frontend_port_name             = "http-port"          # Listen on port 80.
+    protocol                       = "Http"               # No certificate needed initially.
+  }
+
+  request_routing_rule {                                  # Connect listener to backend settings.
+    name                       = "bootstrap-rule"         # Initial rule until AGIC reconciles.
+    priority                   = 100                      # Required for v2; lower values run first.
+    rule_type                  = "Basic"                  # One backend pool, without path routing.
+    http_listener_name         = "bootstrap-listener"     # Incoming listener this rule handles.
+    backend_address_pool_name  = "bootstrap-pool"         # Destination pool, initially empty.
+    backend_http_settings_name = "bootstrap-http-settings" # Protocol, port and timeout to use.
+  }
+
+  lifecycle {                    # Split ownership: Terraform infrastructure, AGIC routing.
+    ignore_changes = [
+      backend_address_pool,      # AGIC manages backend IP addresses.
+      backend_http_settings,     # AGIC manages backend ports, protocols and settings.
+      frontend_port,             # AGIC creates ports required by its listeners.
+      http_listener,             # AGIC creates listeners from Ingress hostnames/TLS.
+      request_routing_rule,      # AGIC creates routing rules from Ingress resources.
+      probe,                     # AGIC configures backend health checks.
+      url_path_map,              # AGIC configures routing by URL path.
+      redirect_configuration,    # AGIC can configure HTTP-to-HTTPS redirects.
+      ssl_certificate,           # AGIC can load certificates from Kubernetes TLS Secrets.
+      authentication_certificate, # Allow AGIC to manage backend authentication certificates.
+      trusted_root_certificate,  # Allow AGIC to manage trust for HTTPS backends.
+      rewrite_rule_set,          # Allow AGIC to manage configured rewrite rules.
+    ]
+  }
+}
+```
 
 ## Terraform example
 

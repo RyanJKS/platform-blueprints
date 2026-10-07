@@ -37,6 +37,19 @@ variable "sku" {
   }
 }
 
+variable "reservation_capacity_in_gb_per_day" {
+  description = "Daily capacity reservation in GB. Required only when sku is CapacityReservation."
+  type        = number
+  default     = null
+
+  validation {
+    condition = var.reservation_capacity_in_gb_per_day == null ? true : contains([
+      50, 100, 200, 300, 400, 500, 1000, 2000, 5000, 10000, 25000, 50000
+    ], var.reservation_capacity_in_gb_per_day)
+    error_message = "reservation_capacity_in_gb_per_day must be null or one of: 50, 100, 200, 300, 400, 500, 1000, 2000, 5000, 10000, 25000, 50000."
+  }
+}
+
 variable "retention_in_days" {
   description = "The workspace data retention period, from 30 to 730 days. Individual table settings can override this default."
   type        = number

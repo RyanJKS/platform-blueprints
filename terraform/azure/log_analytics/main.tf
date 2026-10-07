@@ -4,17 +4,18 @@ locals {
 }
 
 resource "azurerm_log_analytics_workspace" "this" {
-  name                            = local.name
-  resource_group_name             = var.resource_group_name
-  location                        = local.location
-  sku                             = var.sku
-  retention_in_days               = var.retention_in_days
-  daily_quota_gb                  = var.daily_quota_gb
-  local_authentication_enabled    = var.local_authentication_enabled
-  allow_resource_only_permissions = var.allow_resource_only_permissions
-  internet_ingestion_access_type  = var.internet_ingestion_access_type
-  internet_query_access_type      = var.internet_query_access_type
-  tags                            = var.tags
+  name                               = local.name
+  resource_group_name                = var.resource_group_name
+  location                           = local.location
+  sku                                = var.sku
+  reservation_capacity_in_gb_per_day = var.reservation_capacity_in_gb_per_day
+  retention_in_days                  = var.retention_in_days
+  daily_quota_gb                     = var.daily_quota_gb
+  local_authentication_enabled       = var.local_authentication_enabled
+  allow_resource_only_permissions    = var.allow_resource_only_permissions
+  internet_ingestion_access_type     = var.internet_ingestion_access_type
+  internet_query_access_type         = var.internet_query_access_type
+  tags                               = var.tags
 
   lifecycle {
     precondition {

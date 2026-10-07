@@ -8,7 +8,7 @@ tags: [azure, networking, application-gateway, module]
 
 Create one `azurerm_application_gateway` using `Standard_v2` or `WAF_v2`. Configure public or static private frontends, HTTP/HTTPS listeners, basic or path-based routing, backend health probes, and fixed capacity or autoscaling.
 
-Requires Terraform >= 1.3.0 and AzureRM >= 5.0.0. The caller configures the provider and backend. The module references existing infrastructure; it does not create a resource group, subnet, public IP, managed identity, Key Vault certificate, or WAF policy.
+Requires Terraform >= 1.3.0 and AzureRM >= 5.0.0. The caller configures the provider and backend. The module references existing infrastructure; it does not create a resource group, subnet, managed identity, Key Vault certificate, or WAF policy. It can optionally create a public IP.
 
 ## Inputs
 
@@ -21,14 +21,17 @@ Configuration maps use their keys as Azure configuration names. References betwe
 | `subnet_id` | Required | Dedicated Application Gateway subnet. |
 | `name` | `null` | Defaults to `${settings.name_prefix}agw`. |
 | `location` | `null` | Defaults to `settings.region_long`. |
-| `tags` | `{}` | Resource tags. |
+| `tags` | `{}` | Tags for the gateway and the optional managed public IP. |
 | `sku` | `{}` | `tier` defaults to `"Standard_v2"`; also supports `"WAF_v2"`. Fixed `capacity` defaults to `2`. |
 | `autoscale_configuration` | `null` | Optional `min_capacity` (default `2`) and `max_capacity` (default `10`). When configured, fixed SKU capacity is omitted. |
 | `zones` | `[]` | Availability zones supported in the chosen region. |
 | `http2_enabled` | `true` | Enable HTTP/2 on the frontend. |
 | `identity_ids` | `[]` | User-assigned identities for Key Vault certificate access. |
 | `firewall_policy_id` | `null` | Required for `WAF_v2`; must be omitted for `Standard_v2`. Create the policy in the caller. |
-| `frontend_ip_configurations` | Required | Map of `{ public_ip_address_id }` or `{ private_ip_address }`. Private frontends use `subnet_id` and static allocation. |
+| `add_public_ip` | `false` | Create and attach a Standard static public IP using the gateway region, zones, and tags. |
+| `public_ip_name` | `null` | Managed public IP name. Defaults to `${settings.name_prefix}pip`. |
+| `public_ip_configuration_name` | `"public"` | Managed frontend name used by listeners. Overrides a matching map key when `add_public_ip` is enabled. |
+| `frontend_ip_configurations` | `{}` | Map of `{ public_ip_address_id }` or `{ private_ip_address }`. Private frontends use `subnet_id` and static allocation. At least one entry is required unless `add_public_ip` is enabled. |
 | `frontend_ports` | Required | Map of names to integer ports, such as `{ http = 80 }`. |
 | `backend_address_pools` | Required | Map of objects with optional `fqdns` and `ip_addresses` sets. Both default to empty. |
 | `backend_http_settings` | Required | Map of backend settings described below. |
@@ -56,7 +59,9 @@ This module uses an external WAF policy and Key Vault frontend certificates. It 
 
 ## Terraform example
 
-The referenced subnet and public IP must already exist. A public frontend requires a compatible Standard, static public IP in the same region. Match its zones to the gateway configuration where required.
+The referenced subnet must already exist. An externally supplied public IP must also exist and use a compatible Standard SKU, static allocation, region, and zones.
+
+To let the module create the public IP, set `add_public_ip = true` and omit `frontend_ip_configurations` for a public-only gateway. Listeners reference `"public"` by default, or the value of `public_ip_configuration_name`. You can also supply private frontend entries: the module merges the managed public frontend into the map and preserves entries with other keys. The managed entry takes precedence over a matching key.
 
 ```hcl
 module "application_gateway" {

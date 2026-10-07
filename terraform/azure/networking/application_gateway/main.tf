@@ -1,6 +1,25 @@
 locals {
-  name     = coalesce(var.name, "${var.settings.name_prefix}agw")
-  location = coalesce(var.location, var.settings.region_long)
+  name           = coalesce(var.name, "${var.settings.name_prefix}agw")
+  location       = coalesce(var.location, var.settings.region_long)
+  public_ip_name = coalesce(var.public_ip_name, "${var.settings.name_prefix}pip")
+
+  frontend_ip_configurations = merge(var.frontend_ip_configurations, var.add_public_ip ? {
+    (var.public_ip_configuration_name) = {
+      public_ip_address_id = azurerm_public_ip.this[0].id
+      private_ip_address   = null
+    }
+  } : {})
+}
+
+resource "azurerm_public_ip" "this" {
+  count               = var.add_public_ip ? 1 : 0
+  name                = local.public_ip_name
+  resource_group_name = var.resource_group_name
+  location            = local.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = var.tags
+  zones               = var.zones
 }
 
 resource "azurerm_application_gateway" "this" {
@@ -40,7 +59,7 @@ resource "azurerm_application_gateway" "this" {
     }
   }
   dynamic "frontend_ip_configuration" {
-    for_each = var.frontend_ip_configurations
+    for_each = local.frontend_ip_configurations
     content {
       name                          = frontend_ip_configuration.key
       public_ip_address_id          = frontend_ip_configuration.value.public_ip_address_id
@@ -165,6 +184,10 @@ resource "azurerm_application_gateway" "this" {
   }
   lifecycle {
     precondition {
+      condition     = length(local.frontend_ip_configurations) > 0
+      error_message = "Provide at least one frontend_ip_configurations entry or enable add_public_ip."
+    }
+    precondition {
       condition     = length(var.ssl_certificates) == 0 || length(var.identity_ids) > 0
       error_message = "Key Vault certificates require a user-assigned identity in identity_ids."
     }
@@ -174,7 +197,7 @@ resource "azurerm_application_gateway" "this" {
     }
     precondition {
       condition = alltrue([for l in values(var.http_listeners) :
-        contains(keys(var.frontend_ip_configurations), l.frontend_ip_configuration_name) &&
+        contains(keys(local.frontend_ip_configurations), l.frontend_ip_configuration_name) &&
         contains(keys(var.frontend_ports), l.frontend_port_name) &&
         (l.ssl_certificate_name == null ? true : contains(keys(var.ssl_certificates), l.ssl_certificate_name))
       ])
@@ -203,5 +226,20 @@ resource "azurerm_application_gateway" "this" {
       ])
       error_message = "Path maps require path rules and valid default and per-path backend references."
     }
+
+    # Split ownership: Terraform infrastructure, AGIC routing.
+    ignore_changes = [
+      backend_address_pool,     # AGIC manages backend IP addresses.
+      backend_http_settings,    # AGIC manages backend ports, protocols and settings.
+      frontend_port,            # AGIC creates ports required by its listeners.
+      http_listener,            # AGIC creates listeners from Ingress hostnames/TLS.
+      request_routing_rule,     # AGIC creates routing rules from Ingress resources.
+      probe,                    # AGIC configures backend health checks.
+      url_path_map,             # AGIC configures routing by URL path.
+      redirect_configuration,   # AGIC can configure HTTP-to-HTTPS redirects.
+      ssl_certificate,          # AGIC can load certificates from Kubernetes TLS Secrets.
+      trusted_root_certificate, # Allow AGIC to manage trust for HTTPS backends.
+      rewrite_rule_set,         # Allow AGIC to manage configured rewrite rules.
+    ]
   }
 }

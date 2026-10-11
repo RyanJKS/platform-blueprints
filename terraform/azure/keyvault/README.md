@@ -1,12 +1,14 @@
 <!-- Frontmatter
 name: Azure Key Vault
-description: Create an Azure Key Vault with RBAC authorization and purge protection.
+description: Create an Azure Key Vault with RBAC authorization, creator administrator access, and purge protection.
 tags: [azure, module]
 -->
 
 # Azure Key Vault
 
-Create an Azure Key Vault with RBAC authorization and purge protection.
+Create an Azure Key Vault with RBAC authorization and purge protection. The module
+assigns Key Vault Administrator to the creator identity at the vault scope. This role
+allows managing the vault's keys, secrets, and certificates.
 
 Requires Terraform >= 1.3.0 and `hashicorp/azurerm` >= 5.0.0.
 The caller configures provider authentication and remote state. This module declares
@@ -37,6 +39,10 @@ Pin the selected provider version in the consuming root module lock file.
 - `tags`: Tags.
 - `tenant_id`: Tenant id.
 - `vault_uri`: Vault uri.
+- `creator_role_assignment_id`: Vault-scoped Key Vault Administrator role assignment ID.
+
+The `id` output depends on the creator role assignment, so resources consuming the
+vault ID wait for Terraform to create that assignment.
 
 ## Terragrunt usage
 
@@ -69,8 +75,10 @@ Terragrunt `dependency` blocks when composing these modules.
 ## Behavior and upgrade considerations
 
 Public network access is disabled by default. Create a private endpoint and private DNS
-outside this module before accessing secrets, or explicitly enable public access. Assign
-Key Vault data-plane roles separately; this module does not grant access or manage
+outside this module before accessing secrets, or explicitly enable public access.
+The creator receives Key Vault Administrator; assign roles for other identities
+separately. The caller must have `Microsoft.Authorization/roleAssignments/write` at
+the vault or a parent scope to create the assignment. This module does not manage
 secrets. Vault names must be globally unique. Purge protection cannot be disabled once
 enabled, and retention cannot be changed after creation. AzureRM 5 uses
 `rbac_authorization_enabled`; legacy access policies are not configured.
@@ -86,6 +94,26 @@ A nonempty `name` overrides the generated name. Name resolution lives in
 the top-level `locals` block, and the resource uses `local.name`.
 `location` defaults to `settings.region_long`; an explicit nonempty location wins.
 `tenant_id` defaults to `settings.tenant_id`; an explicit nonempty tenant ID wins.
+
+The optional `settings.object_id` selects the identity receiving Key Vault
+Administrator. The `solution_settings` module already supplies this field from its
+AzureRM identity. When `object_id` is omitted, null, or empty, the Key Vault module
+uses the current AzureRM identity's object ID. This supports users, service
+principals, and managed identities; it uses the principal object ID rather than the
+application client ID. Existing settings objects without `object_id` remain valid.
+
+```hcl
+module "keyvault" {
+  source = "git::https://github.com/RyanJKS/platform-blueprints.git//terraform/azure/keyvault?ref=REPLACE_WITH_PUBLISHED_TAG_OR_COMMIT"
+
+  settings            = module.solution_settings.settings
+  resource_group_name = module.resource_group.name
+}
+```
+
+For existing vaults, upgrading adds the creator role assignment. If the same
+assignment is already managed outside this module, import it into
+`azurerm_role_assignment.creator` under the module address before applying.
 
 Generated names are not truncated or guaranteed unique. Review name changes in
 the plan because they can replace existing resources.

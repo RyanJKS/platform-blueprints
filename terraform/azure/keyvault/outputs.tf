@@ -1,6 +1,12 @@
 output "id" {
-  description = "The id of the resource."
+  description = "The Key Vault resource ID, available after the creator role assignment completes."
   value       = azurerm_key_vault.this.id
+  depends_on  = [azurerm_role_assignment.creator]
+}
+
+output "creator_role_assignment_id" {
+  description = "The vault-scoped Key Vault Administrator role assignment ID for the creator identity."
+  value       = azurerm_role_assignment.creator.id
 }
 
 output "name" {

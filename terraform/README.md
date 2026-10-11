@@ -65,6 +65,7 @@ Azure modules are grouped under `networking/` and `aks/` where related modules e
 - [Azure storage account](azure/storage_account/README.md): Create a storage account with HNS, SFTP, NFS, data protection, and access controls.
 - [Azure Container Registry](azure/container_registry/README.md): Create a registry with access controls, managed identity, and optional Premium networking and replication.
 - [Microsoft Entra security groups](azure/ad_group/README.md): Create security groups from a map keyed by group name, with per-group owners and members.
+- [Azure service principal](azure/service_principal/README.md): Create a service principal with optional credentials stored in Key Vault.
 - [Azure Kubernetes Service](azure/aks/cluster/README.md): Create an AKS cluster with a managed identity and a system node pool.
 
 Azure resource modules require AzureRM >= 5.0.0. Microsoft Entra groups require

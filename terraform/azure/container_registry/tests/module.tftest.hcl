@@ -119,7 +119,7 @@ run "connection_and_admin_outputs" {
       output.id == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ContainerRegistry/registries/paymentsuksdevacr" &&
       output.login_server == "paymentsuksdevacr.azurecr.io" &&
       output.admin_username == "registry-admin" &&
-    output.admin_password == "mock-password" && # pragma: allowlist secret
+      output.admin_password == "mock-password" && # pragma: allowlist secret
       azurerm_container_registry.this.anonymous_pull_enabled
     )
     error_message = "The module must expose registry connection details and admin credentials only when enabled."

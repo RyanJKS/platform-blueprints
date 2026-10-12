@@ -3,6 +3,11 @@ output "id" {
   value       = azurerm_user_assigned_identity.this.id
 }
 
+output "federated_identity_credential_ids" {
+  description = "Federated identity credential resource IDs keyed by credential name. Empty when no credentials are configured."
+  value       = { for name, credential in azurerm_federated_identity_credential.this : name => credential.id }
+}
+
 output "name" {
   description = "The name of the resource."
   value       = azurerm_user_assigned_identity.this.name

@@ -22,6 +22,8 @@ run "basic_defaults" {
       azurerm_application_gateway.this.sku[0].tier == "Standard_v2" &&
       azurerm_application_gateway.this.sku[0].capacity == 2 &&
       length(azurerm_application_gateway.this.autoscale_configuration) == 0 &&
+      length(azurerm_public_ip.this) == 0 &&
+      one(azurerm_application_gateway.this.frontend_ip_configuration).public_ip_address_id == var.frontend_ip_configurations.public.public_ip_address_id &&
       one(azurerm_application_gateway.this.request_routing_rule).priority == 100 &&
       one(azurerm_application_gateway.this.backend_address_pool).fqdns == toset(["app.example.com"])
     )
@@ -113,4 +115,63 @@ run "reject_invalid_autoscale" {
   command = plan
   variables { autoscale_configuration = { min_capacity = 5, max_capacity = 2 } }
   expect_failures = [var.autoscale_configuration]
+}
+
+run "managed_public_frontend" {
+  command = apply
+  variables {
+    add_public_ip              = true
+    frontend_ip_configurations = {}
+  }
+  assert {
+    condition = (
+      length(azurerm_public_ip.this) == 1 &&
+      azurerm_public_ip.this[0].name == "paymentsuksdevpip" &&
+      azurerm_public_ip.this[0].location == "uksouth" &&
+      azurerm_public_ip.this[0].resource_group_name == var.resource_group_name &&
+      azurerm_public_ip.this[0].sku == "Standard" &&
+      azurerm_public_ip.this[0].allocation_method == "Static" &&
+      one(azurerm_application_gateway.this.frontend_ip_configuration).name == "public" &&
+      one(azurerm_application_gateway.this.frontend_ip_configuration).public_ip_address_id == azurerm_public_ip.this[0].id
+    )
+    error_message = "Enabling add_public_ip must create and attach a Standard static public IP without caller-supplied frontends."
+  }
+}
+run "managed_public_frontend_merges_private_and_overrides_matching_key" {
+  command = apply
+  variables {
+    add_public_ip                = true
+    public_ip_name               = "custom-public-ip"
+    public_ip_configuration_name = "external"
+    location                     = "westeurope"
+    zones                        = ["1", "2", "3"]
+    tags                         = { environment = "test" }
+    frontend_ip_configurations = {
+      external = { public_ip_address_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Network/publicIPAddresses/existing" }
+      private  = { private_ip_address = "10.0.1.10" }
+    }
+    http_listeners = {
+      http = { frontend_ip_configuration_name = "external", frontend_port_name = "http" }
+    }
+  }
+  assert {
+    condition = (
+      azurerm_public_ip.this[0].name == "custom-public-ip" &&
+      azurerm_public_ip.this[0].location == "westeurope" &&
+      azurerm_public_ip.this[0].zones == var.zones &&
+      azurerm_public_ip.this[0].tags == var.tags &&
+      length(azurerm_application_gateway.this.frontend_ip_configuration) == 2 &&
+      one([for f in azurerm_application_gateway.this.frontend_ip_configuration : f if f.name == "external"]).public_ip_address_id == azurerm_public_ip.this[0].id &&
+      one([for f in azurerm_application_gateway.this.frontend_ip_configuration : f if f.name == "private"]).private_ip_address == "10.0.1.10" &&
+      one([for f in azurerm_application_gateway.this.frontend_ip_configuration : f if f.name == "private"]).subnet_id == var.subnet_id
+    )
+    error_message = "The managed public frontend must override its matching key, preserve the private frontend, and honor naming, region, zones, and tags."
+  }
+}
+run "reject_empty_frontends_without_managed_public_ip" {
+  command = plan
+  variables {
+    frontend_ip_configurations = {}
+  }
+  expect_failures = [azurerm_application_gateway.this]
 }

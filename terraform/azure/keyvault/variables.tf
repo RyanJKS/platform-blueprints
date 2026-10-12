@@ -4,6 +4,7 @@ variable "settings" {
     name_prefix = string
     region_long = string
     tenant_id   = string
+    object_id   = optional(string)
   })
   nullable = false
 }

@@ -23,6 +23,11 @@ output "node_resource_group" {
   value       = azurerm_kubernetes_cluster.this.node_resource_group
 }
 
+output "node_resource_group_id" {
+  description = "The managed resource group id created by azure"
+  value       = azurerm_kubernetes_cluster.this.node_resource_group_id
+}
+
 output "oidc_issuer_url" {
   description = "The oidc issuer url of the resource."
   value       = azurerm_kubernetes_cluster.this.oidc_issuer_url

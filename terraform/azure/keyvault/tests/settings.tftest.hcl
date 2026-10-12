@@ -1,4 +1,10 @@
-mock_provider "azurerm" {}
+mock_provider "azurerm" {
+  mock_data "azurerm_client_config" {
+    defaults = {
+      object_id = "33333333-3333-3333-3333-333333333333"
+    }
+  }
+}
 
 variables {
   resource_group_name = "rg-test"

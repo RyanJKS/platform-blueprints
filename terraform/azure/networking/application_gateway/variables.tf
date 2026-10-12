@@ -24,7 +24,7 @@ variable "subnet_id" {
   nullable    = false
 }
 variable "tags" {
-  description = "Tags for the gateway."
+  description = "Tags for the gateway and the optional managed public IP."
   type        = map(string)
   default     = {}
   nullable    = false
@@ -75,13 +75,35 @@ variable "firewall_policy_id" {
   type        = string
   default     = null
 }
-variable "frontend_ip_configurations" {
-  description = "Frontend configurations keyed by name. Each references a public IP or specifies a static private IP on subnet_id."
-  type        = map(object({ public_ip_address_id = optional(string), private_ip_address = optional(string) }))
+variable "add_public_ip" {
+  description = "Create a Standard static public IP and merge its frontend into frontend_ip_configurations."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+variable "public_ip_name" {
+  description = "Managed public IP name override. Defaults to settings.name_prefix followed by pip."
+  type        = string
+  default     = null
+}
+variable "public_ip_configuration_name" {
+  description = "Managed public frontend name for listener references. Overrides a matching frontend_ip_configurations key when add_public_ip is true."
+  type        = string
+  default     = "public"
   nullable    = false
   validation {
-    condition     = length(var.frontend_ip_configurations) > 0 && alltrue([for f in values(var.frontend_ip_configurations) : (f.public_ip_address_id != null) != (f.private_ip_address != null)])
-    error_message = "Provide at least one frontend; each must specify exactly one public_ip_address_id or private_ip_address."
+    condition     = length(trimspace(var.public_ip_configuration_name)) > 0
+    error_message = "public_ip_configuration_name must not be empty."
+  }
+}
+variable "frontend_ip_configurations" {
+  description = "Frontend configurations keyed by name. Each references a public IP or specifies a static private IP on subnet_id. May be empty when add_public_ip is true."
+  type        = map(object({ public_ip_address_id = optional(string), private_ip_address = optional(string) }))
+  default     = {}
+  nullable    = false
+  validation {
+    condition     = alltrue([for f in values(var.frontend_ip_configurations) : (f.public_ip_address_id != null) != (f.private_ip_address != null)])
+    error_message = "Each frontend must specify exactly one public_ip_address_id or private_ip_address."
   }
 }
 variable "frontend_ports" {

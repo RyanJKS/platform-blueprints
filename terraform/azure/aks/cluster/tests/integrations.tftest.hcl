@@ -13,6 +13,43 @@ variables {
 }
 
 
+run "aci_connector_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(azurerm_kubernetes_cluster.this.aci_connector_linux) == 0
+    error_message = "The ACI connector must be disabled when omitted."
+  }
+}
+
+run "aci_connector_enabled" {
+  command = plan
+
+  variables {
+    aci_connector_linux = {
+      subnet_name = "aci-subnet"
+    }
+  }
+
+  assert {
+    condition     = one(azurerm_kubernetes_cluster.this.aci_connector_linux).subnet_name == "aci-subnet"
+    error_message = "The ACI connector must use the supplied subnet name."
+  }
+}
+
+run "aci_connector_explicitly_disabled" {
+  command = plan
+
+  variables {
+    aci_connector_linux = null
+  }
+
+  assert {
+    condition     = length(azurerm_kubernetes_cluster.this.aci_connector_linux) == 0
+    error_message = "The ACI connector must be disabled when explicitly null."
+  }
+}
+
 run "configured_integrations" {
   command = plan
   variables {

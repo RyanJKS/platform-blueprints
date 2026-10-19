@@ -222,6 +222,14 @@ variable "network_profile" {
   nullable = false
 }
 
+variable "aci_connector_linux" {
+  description = "ACI virtual nodes for Linux containers using an existing subnet name. Null disables the addon."
+  type = object({
+    subnet_name = string
+  })
+  default = null
+}
+
 variable "ingress_application_gateway" {
   description = "Application Gateway ingress using an existing gateway. Null disables the addon."
   type = object({

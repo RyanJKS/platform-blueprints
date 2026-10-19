@@ -79,6 +79,13 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
 
+  dynamic "aci_connector_linux" {
+    for_each = var.aci_connector_linux == null ? [] : [var.aci_connector_linux]
+    content {
+      subnet_name = aci_connector_linux.value.subnet_name
+    }
+  }
+
   dynamic "ingress_application_gateway" {
     for_each = var.ingress_application_gateway == null ? [] : [var.ingress_application_gateway]
     content {

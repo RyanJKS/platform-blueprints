@@ -42,6 +42,8 @@ Pin the selected provider version in the consuming root module lock file.
 
 ## Private networking and integrations
 
+The optional `aci_connector_linux` input accepts `{ subnet_name = "aci-subnet" }` to enable ACI Linux virtual nodes using an existing subnet. It defaults to `null`, which disables the addon.
+
 The following inputs extend the existing node pool, control-plane identity, Entra, and managed Prometheus settings:
 
 | Input | Default | Settings |

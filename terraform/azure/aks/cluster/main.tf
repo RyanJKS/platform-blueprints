@@ -45,6 +45,19 @@ resource "azurerm_kubernetes_cluster" "this" {
     identity_ids = length(var.identity_ids) > 0 ? var.identity_ids : null
   }
 
+  linux_profile {
+    admin_username = "aksadmin"
+
+    ssh_key {
+      key_data = tls_private_key.aks.public_key_openssh
+    }
+  }
+
+  windows_profile {
+    admin_username = "winadmin"
+    admin_password = random_password.aks_windows.result
+  }
+
   dynamic "azure_active_directory_role_based_access_control" {
     for_each = local.entra_enabled ? [true] : []
 

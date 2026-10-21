@@ -222,6 +222,11 @@ variable "network_profile" {
   nullable = false
 }
 
+variable "key_vault_id" {
+  description = "ID of the existing Key Vault to store vm access secrets."
+  type        = string
+}
+
 variable "aci_connector_linux" {
   description = "ACI virtual nodes for Linux containers using an existing subnet name. Null disables the addon."
   type = object({

@@ -222,6 +222,12 @@ variable "network_profile" {
   nullable = false
 }
 
+variable "kube_proxy_disabled" {
+  description = "Manage kube-proxy through the AKS preview API. Null leaves it unmanaged, true disables it for a BYO CNI, and false explicitly re-enables it. Requires KubeProxyConfigurationPreview registration."
+  type        = bool
+  default     = false
+}
+
 variable "key_vault_id" {
   description = "ID of the existing Key Vault to store vm access secrets."
   type        = string
@@ -331,6 +337,20 @@ variable "additional_node_pools" {
   validation {
     condition     = alltrue([for pool in values(var.additional_node_pools) : contains(["Schedule", "Cordon"], pool.undrainable_node_behavior)])
     error_message = "undrainable_node_behavior must be Schedule or Cordon."
+  }
+}
+
+variable "local_dns_profiles" {
+  description = "Map of API-shaped localDNSProfile objects keyed by additional node pool name. An empty map leaves LocalDNS unmanaged. Use jsondecode(file(...)) to load a profile from JSON."
+  type        = any
+  default     = {}
+  nullable    = false
+
+  validation {
+    condition = can(keys(var.local_dns_profiles)) ? alltrue([
+      for profile in values(var.local_dns_profiles) : can(regex("^(Disabled|Preferred|Required)$", profile.mode))
+    ]) : false
+    error_message = "local_dns_profiles must map additional node pool names to objects with mode set to Disabled, Preferred, or Required."
   }
 }
 

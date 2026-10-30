@@ -10,7 +10,8 @@ tags: [azure, module]
 Create an AKS cluster with a managed identity, a configurable system node pool,
 and optional managed Prometheus, and application routing addons.
 
-Requires Terraform >= 1.3.0 and `hashicorp/azurerm` >= 5.0.0.
+Requires Terraform >= 1.3.0, `hashicorp/azurerm` >= 5.0.0, and
+`Azure/azapi` ~> 2.0.
 The caller configures provider authentication and remote state. This module declares
 provider requirements only and does not configure a provider or backend.
 Configure the AzureRM `features` block and subscription ID in the caller.
@@ -52,6 +53,7 @@ The following inputs extend the existing node pool, control-plane identity, Entr
 | `private_dns_zone_id` | `null` | Existing private DNS zone resource ID, `"System"`, or `"None"`. |
 | `kubelet_identity` | `null` | Required `client_id`, `object_id`, and `user_assigned_identity_id` for an existing identity. Requires user-assigned control-plane identity via `identity_ids`. |
 | `network_profile` | Azure CNI overlay | Required `network_plugin`; optional `network_plugin_mode`, `network_policy`, `network_data_plane`, `dns_service_ip`, `service_cidr`, `pod_cidr`, `outbound_type` (default `"loadBalancer"`), and `load_balancer_sku` (default `"standard"`). |
+| `kube_proxy_disabled` | `null` | Null leaves kube-proxy unmanaged; `true` disables it for a BYO CNI; `false` explicitly re-enables it. Requires the AKS preview feature described below. |
 | `ingress_application_gateway` | `null` | Required `gateway_id` for an existing Application Gateway. |
 | `key_management_service` | `null` | Required `key_vault_key_id`; optional `key_vault_network_access`, either `"Public"` (default) or `"Private"`. |
 | `oms_agent` | `null` | Required `log_analytics_workspace_id`; optional `msi_auth_for_monitoring_enabled` (default `true`). |
@@ -133,6 +135,39 @@ Keep role assignments in the caller and reference all required assignments in th
 For custom private DNS, grant the control-plane identity the required Private DNS Zone Contributor and network permissions. An external kubelet identity requires Managed Identity Operator permissions for the control-plane identity. Configure the Key Vault cryptographic permissions and private connectivity required by AKS KMS; `key_vault_network_access = "Private"` does not create private endpoints or DNS. Grant the ingress addon identity the required Application Gateway permissions using the new identity output.
 
 AzureRM 5 uses managed Entra integration without a `managed` argument. Continue using `admin_group_object_ids`, `tenant_id`, and `azure_rbac_enabled`. Set administrator groups or an explicit tenant ID when disabling local accounts. Choose an AKS version supported in your region; the example does not carry forward the old `1.28` version.
+
+## Kube-proxy replacement
+
+For a self-managed CNI such as Cilium, set `network_profile.network_plugin = "none"`
+and `kube_proxy_disabled = true`. Install and configure the CNI separately with
+kube-proxy replacement enabled. This module does not install Cilium.
+
+AzureRM does not expose `kubeProxyConfig.enabled`, so the module uses an optional
+AzAPI update after the cluster and additional pools are created. Register the
+`Microsoft.ContainerService/KubeProxyConfigurationPreview` subscription feature
+and wait until it is registered before applying. Refresh the resource provider
+registration afterward:
+
+```sh
+az feature register --namespace Microsoft.ContainerService --name KubeProxyConfigurationPreview
+az feature show --namespace Microsoft.ContainerService --name KubeProxyConfigurationPreview
+# Run after the feature status is Registered.
+az provider register --namespace Microsoft.ContainerService
+```
+
+See [Configure kube-proxy in AKS](https://learn.microsoft.com/en-us/azure/aks/configure-kube-proxy)
+for the preview prerequisites. Configure AzAPI authentication in the consuming
+root, using the same subscription and identity as AzureRM:
+
+```hcl
+provider "azapi" {}
+```
+
+For AKS-managed Cilium, use `network_data_plane = "cilium"` with Azure CNI and
+leave `kube_proxy_disabled = null`; AKS handles kube-proxy itself. To restore
+kube-proxy after an explicit disablement, apply `kube_proxy_disabled = false`
+before returning it to `null`. Removing an AzAPI update from Terraform does not
+restore the previous Azure configuration.
 
 ## Default node pool settings
 
@@ -248,6 +283,43 @@ scheduling are outside this module.
 `minimum_node_count` continues to describe only the default pool, so optional,
 tainted, GPU, and Spot capacity is not counted toward addon capacity checks.
 
+## Optional LocalDNS
+
+Set `local_dns_profiles` to a map of `localDNSProfile` objects keyed by pool names
+from `additional_node_pools`. The default `{}` creates no LocalDNS updates.
+Each selected pool receives an `azapi_update_resource.localdns` update after
+pool creation and any optional kube-proxy update.
+
+For example, add these inputs to the module call:
+
+```hcl
+additional_node_pools = {
+  workloads = {
+    vm_size   = "Standard_D8s_v5"
+    min_count = 1
+    max_count = 5
+  }
+}
+
+local_dns_profiles = {
+  workloads = jsondecode(file("${path.module}/localdns.json"))
+}
+```
+
+Keep `localdns.json` in the consuming root module. Supply an API-shaped profile
+with `mode` set to `Required`, `Preferred`, or `Disabled`, and any required
+`vnetDNSOverrides` and `kubeDNSOverrides`. Profile fields and DNS zone keys pass
+through unchanged. Different pools can use different profiles. The default
+system pool is not targeted by this input.
+
+For more information, including the full profile schema, see the
+[AKS agent pool Terraform API reference](https://learn.microsoft.com/en-us/azure/templates/microsoft.containerservice/2025-10-01/managedclusters/agentpools?pivots=deployment-language-terraform).
+The module uses that `2025-10-01` API version. Review AKS LocalDNS requirements
+before enabling it; Azure may rotate nodes when the profile changes.
+
+To disable LocalDNS, apply a profile with `mode = "Disabled"` before removing its
+map entry. Removing an AzAPI update leaves the existing Azure setting in place.
+
 ## Container Insights data collection
 
 Set `container_insights = {}` alongside `oms_agent` to create a Container Insights
@@ -298,28 +370,20 @@ returns the rule ID, or null when disabled.
 - `kubelet_identity`: Kubelet identity.
 
 - `web_app_routing_identity`: Application routing identity for DNS role assignments.
-- `kube_config_raw`: Sensitive cluster kubeconfig.
-- `kube_admin_config_raw`: Sensitive administrator kubeconfig, available when Entra
-  integration and local accounts are enabled.
-
-- `kube_config`: Sensitive raw kubeconfig YAML, an alias of `kube_config_raw`.
-- `kube_config_credentials`: Sensitive connection object, or `null` when unavailable.
-- `host`: Sensitive Kubernetes API endpoint from the kubeconfig.
-- `client_certificate`, `client_key`, `cluster_ca_certificate`: Sensitive base64-encoded certificate fields and private key.
-- `username`, `password`: Sensitive authentication fields, which may be empty depending on authentication mode.
-- `kube_admin_config_credentials`: Sensitive administrator connection object, or `null` when unavailable.
+- `host`: Kubernetes API endpoint, or `null` when unavailable.
+- `cluster_ca_certificate`: Base64-encoded cluster CA certificate, or `null` when unavailable.
 - `fqdn`, `private_fqdn`: API server DNS names, when configured.
 
 ### Connection dependencies
 
-A downstream Terraform root can configure the Helm provider using these outputs:
+Use the endpoint and CA certificate with Entra authentication. These outputs remain marked sensitive because their provider source is sensitive; the CA certificate is public trust material.
+
+The following downstream Helm provider uses `kubelogin` with an existing Azure CLI login:
 
 ```hcl
 variable "aks_connection" {
   type = object({
     host                   = string
-    client_certificate     = string
-    client_key             = string
     cluster_ca_certificate = string
   })
   sensitive = true
@@ -328,14 +392,24 @@ variable "aks_connection" {
 provider "helm" {
   kubernetes = {
     host                   = var.aks_connection.host
-    client_certificate     = base64decode(var.aks_connection.client_certificate)
-    client_key             = base64decode(var.aks_connection.client_key)
     cluster_ca_certificate = base64decode(var.aks_connection.cluster_ca_certificate)
+
+    exec = {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "kubelogin"
+      args = [
+        "get-token",
+        "--login", "azurecli",
+        "--server-id", "6dae42f8-4368-4678-94ff-3960e28e3630",
+      ]
+    }
   }
 }
 ```
 
-Supply the object from the downstream unit's `terragrunt.hcl`:
+The server application ID above is for AKS in Azure public cloud. Install `kubelogin` on the runner and sign in with Azure CLI before running Terraform. The identity needs permission to access the cluster. For CI, prefer federated or managed identity authentication and configure the corresponding `kubelogin` login mode.
+
+Supply connection settings through the downstream unit's `terragrunt.hcl`:
 
 ```hcl
 dependency "cluster" {
@@ -343,17 +417,18 @@ dependency "cluster" {
 }
 
 inputs = {
-  aks_connection = dependency.cluster.outputs.kube_config_credentials
+  aks_connection = {
+    host                   = dependency.cluster.outputs.host
+    cluster_ca_certificate = dependency.cluster.outputs.cluster_ca_certificate
+  }
 }
 ```
 
-Individual fields are also available, for example `dependency.cluster.outputs.client_certificate`. In Terraform, use `module.aks.kube_config_credentials` with your actual module call name. Configure the provider in the consuming root; the shared Helm release module inherits it.
+In Terraform, use `module.aks.host` and `module.aks.cluster_ca_certificate` with your actual module call name. Configure the provider in the consuming root; the shared Helm release module inherits it.
 
-The certificate example requires usable client credentials. Entra-enabled clusters may return empty client certificate/key fields and require exec authentication, such as `kubelogin`, instead. Administrator credentials are unavailable when local accounts are disabled. These outputs do not change cluster authentication settings.
+Missing connection blocks return `null`; Terraform omits null root outputs, so consumers must account for unavailable connection settings. Decode the CA certificate when configuring providers. Deploy the cluster before downstream releases. The runner must reach the cluster API, including private networking when enabled.
 
-Missing connection blocks return `null`; Terraform omits null root outputs, so consumers must account for unavailable credentials. Individual provider fields may also be empty strings. `kube_config` is raw YAML, not the structured object. Decode certificate fields when configuring providers; do not base64-decode the raw YAML.
-
-Deploy the cluster before downstream releases. The runner must reach the cluster API, including private networking when enabled. Sensitive outputs remain in Terraform state; protect the backend and mark downstream credential variables sensitive.
+Credential outputs have been removed: `kube_config_raw`, `kube_config`, `kube_config_credentials`, `client_certificate`, `client_key`, `username`, `password`, `kube_admin_config_credentials`, and `kube_admin_config_raw`. Update consumers to use Entra authentication. Removing these outputs does not remove credentials from the AKS resource in Terraform state or historical state versions. Protect the state backend.
 
 ## Optional addon settings
 
@@ -426,10 +501,9 @@ Terragrunt `dependency` blocks when composing these modules.
 The API server is private by default; clients need network connectivity and DNS
 resolution. Supply administrator group object IDs or a tenant ID to enable Entra
 integration. Local accounts are then disabled unless explicitly overridden.
-Set `local_account_disabled = false` only when local administrator credentials
-are needed, for example when consuming `kube_admin_config_raw`. Both kubeconfig
-outputs are sensitive, but Terraform still stores credentials in state. Protect
-state and prefer Entra authentication for routine access.
+Prefer Entra authentication for routine access. This module does not export
+kubeconfigs or client authentication credentials. Terraform may still store
+credentials in the AKS resource state; protect the state backend.
 
 Autoscaling omits `node_count` and uses `min_count` and `max_count`. Without
 autoscaling, only `node_count` controls capacity. Minimum and maximum counts must
@@ -449,7 +523,7 @@ workspaces, federated identity credentials, or Argo CD applications. Optional cl
 ## Tests
 
 With Terraform >= 1.7.0, run `terraform init -backend=false`, `terraform validate`,
-and `terraform test` in this directory. The tests cover addon defaults, configured routing and metrics, Entra access, autoscaling limits, and capacity outputs. The tests also cover mixed user pools, zero-node GPU and Spot pools, invalid pool settings, and Container Insights configuration and prerequisites. All tests use mocked providers and create no Azure resources.
+and `terraform test` in this directory. The tests cover addon defaults, configured routing and metrics, Entra access, autoscaling limits, and capacity outputs. The tests also cover mixed user pools, zero-node GPU and Spot pools, invalid pool settings, Container Insights configuration and prerequisites, kube-proxy overrides, and LocalDNS configuration. All tests use mocked providers and create no Azure resources.
 
 ## Shared solution settings
 

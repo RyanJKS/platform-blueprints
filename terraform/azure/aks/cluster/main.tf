@@ -166,3 +166,25 @@ resource "azurerm_kubernetes_cluster" "this" {
     }
   }
 }
+
+
+# AzureRM does not expose kubeProxyConfig.enabled. AKS manages this itself when
+# network_data_plane is cilium; this override is for a caller-managed CNI.
+resource "azapi_update_resource" "kube_proxy_disabled" {
+  count       = var.kube_proxy_disabled ? 1 : 0
+  resource_id = azurerm_kubernetes_cluster.this.id
+  type        = "Microsoft.ContainerService/managedClusters@2026-05-02-preview"
+  body = {
+    properties = {
+      networkProfile = {
+        kubeProxyConfig = {
+          enabled = false
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    azurerm_kubernetes_cluster_node_pool.this
+  ]
+}

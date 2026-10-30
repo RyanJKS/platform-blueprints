@@ -1,6 +1,7 @@
 locals {
-  name     = coalesce(var.name, "${var.settings.name_prefix}id")
-  location = coalesce(var.location, var.settings.region_long)
+  name               = coalesce(var.name, "${var.settings.name_prefix}id")
+  location           = coalesce(var.location, var.settings.region_long)
+  secret_name_prefix = "${coalesce(var.secret_name_prefix, local.name)}-"
 }
 
 resource "azurerm_user_assigned_identity" "this" {
@@ -18,4 +19,10 @@ resource "azurerm_federated_identity_credential" "this" {
   issuer                    = each.value.issuer
   subject                   = each.value.subject
   audience                  = each.value.audience
+}
+
+resource "azurerm_key_vault_secret" "client_id" {
+  name         = "${local.secret_name_prefix}client-id"
+  value        = azurerm_user_assigned_identity.this.client_id
+  key_vault_id = var.key_vault_id
 }

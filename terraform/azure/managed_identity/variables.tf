@@ -61,3 +61,20 @@ variable "tags" {
   default     = {}
   nullable    = false
 }
+
+variable "key_vault_id" {
+  description = "The resource ID of an existing Azure Key Vault. Required when create_secret is true."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.key_vault_id == null ? true : length(trimspace(var.key_vault_id)) > 0
+    error_message = "key_vault_id must be null or a nonempty Key Vault resource ID."
+  }
+}
+
+variable "secret_name_prefix" {
+  description = "Prefix to place before secret name"
+  type        = string
+  default     = ""
+}

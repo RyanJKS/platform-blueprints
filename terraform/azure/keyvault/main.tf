@@ -1,5 +1,5 @@
 locals {
-  name              = coalesce(var.name, "${var.settings.name_prefix}akv")
+  name              = coalesce(var.name, "${var.settings.name_prefix}kv")
   location          = coalesce(var.location, var.settings.region_long)
   tenant_id         = coalesce(var.tenant_id, var.settings.tenant_id)
   creator_object_id = coalesce(var.settings.object_id, data.azurerm_client_config.current.object_id)

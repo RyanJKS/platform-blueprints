@@ -1,3 +1,5 @@
+mock_provider "time" {}
+
 mock_provider "azurerm" {
   mock_data "azurerm_client_config" {
     defaults = {

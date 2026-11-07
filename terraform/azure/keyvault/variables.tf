@@ -21,12 +21,6 @@ variable "resource_group_name" {
   nullable    = false
 }
 
-variable "location" {
-  description = "Optional Azure region override. Defaults to settings.region_long."
-  type        = string
-  default     = null
-}
-
 variable "tags" {
   description = "Tags to assign to the resource."
   type        = map(string)

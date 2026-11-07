@@ -10,7 +10,7 @@ Create an Azure Key Vault with RBAC authorization and purge protection. The modu
 assigns Key Vault Administrator to the creator identity at the vault scope. This role
 allows managing the vault's keys, secrets, and certificates.
 
-Requires Terraform >= 1.3.0 and `hashicorp/azurerm` >= 5.0.0.
+Requires Terraform >= 1.3.0, `hashicorp/azurerm` >= 5.0.0, and `hashicorp/time` >= 0.9.1.
 The caller configures provider authentication and remote state. This module declares
 provider requirements only and does not configure a provider or backend.
 Configure the AzureRM `features` block and subscription ID in the caller.
@@ -29,6 +29,7 @@ Pin the selected provider version in the consuming root module lock file.
 | `sku_name` | `string` | No | `"standard"` | The Key Vault SKU. |
 | `soft_delete_retention_days` | `number` | No | `90` | The retention period for deleted vaults and objects. |
 | `purge_protection_enabled` | `bool` | No | `true` | Whether to enable irreversible purge protection. |
+| `vault_creation_wait` | `string` | No | `"60s"` | Delay after vault creation or update before administrator role assignment and downstream resources. |
 | `public_network_access_enabled` | `bool` | No | `false` | Whether to allow access through the public endpoint. |
 
 ## Outputs
@@ -41,8 +42,13 @@ Pin the selected provider version in the consuming root module lock file.
 - `vault_uri`: Vault uri.
 - `creator_role_assignment_id`: Vault-scoped Key Vault Administrator role assignment ID.
 
-The `id` output depends on the creator role assignment, so resources consuming the
-vault ID wait for Terraform to create that assignment.
+The administrator role assignment waits after Terraform creates or updates the
+vault. The wait defaults to 60 seconds and can be configured with
+`vault_creation_wait` (for example, `"2m"`). All outputs depend on the role
+assignment, so downstream resources consuming these outputs wait for both the
+vault creation delay and the role assignment to finish.
+A fixed delay adds a buffer but does not verify Azure readiness or wait for RBAC
+permissions to propagate after the assignment.
 
 ## Terragrunt usage
 

@@ -37,7 +37,7 @@ The registry always uses `settings.region_long` for its location. Pass
 | `tags` | `map(string)` | No | `{}` | Registry tags. |
 
 The generated name is the lowercase `settings.name_prefix` with non-alphanumeric
-characters removed, followed by `acr`. Names must contain 5 to 50 letters or
+characters removed, followed by `cr`. Names must contain 5 to 50 letters or
 digits and be globally unique. Generated names are not truncated or guaranteed
 unique; supply `name` when necessary.
 

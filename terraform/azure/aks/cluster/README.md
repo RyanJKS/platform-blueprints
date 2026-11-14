@@ -525,6 +525,11 @@ workspaces, federated identity credentials, or Argo CD applications. Optional cl
 With Terraform >= 1.7.0, run `terraform init -backend=false`, `terraform validate`,
 and `terraform test` in this directory. The tests cover addon defaults, configured routing and metrics, Entra access, autoscaling limits, and capacity outputs. The tests also cover mixed user pools, zero-node GPU and Spot pools, invalid pool settings, Container Insights configuration and prerequisites, kube-proxy overrides, and LocalDNS configuration. All tests use mocked providers and create no Azure resources.
 
+Shared test inputs live in `tests/fixtures.auto.tfvars`. Terraform automatically
+loads this file for tests in the same directory. Test-file and run-level
+`variables` blocks override these defaults for specific scenarios; provider mocks
+remain in the test files.
+
 ## Shared solution settings
 
 Pass the required `settings = module.solution_settings.settings` input. The module

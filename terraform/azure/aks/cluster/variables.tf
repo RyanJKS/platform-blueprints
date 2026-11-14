@@ -225,7 +225,7 @@ variable "network_profile" {
 variable "kube_proxy_disabled" {
   description = "Manage kube-proxy through the AKS preview API. Null leaves it unmanaged, true disables it for a BYO CNI, and false explicitly re-enables it. Requires KubeProxyConfigurationPreview registration."
   type        = bool
-  default     = false
+  default     = null
 }
 
 variable "key_vault_id" {

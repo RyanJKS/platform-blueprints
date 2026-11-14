@@ -13,8 +13,7 @@ variables {
     region_long = "uksouth"
     tenant_id   = "11111111-1111-1111-1111-111111111111"
   }
-  resource_group_name = "rg-test"
-  dns_prefix          = "test"
+  dns_prefix = "test"
 }
 
 run "monitoring_disabled" {

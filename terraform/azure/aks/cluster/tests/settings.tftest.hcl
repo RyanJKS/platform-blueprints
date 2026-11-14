@@ -1,15 +1,5 @@
 mock_provider "azurerm" {}
 
-variables {
-  resource_group_name = "rg-test"
-  dns_prefix          = "test-aks"
-  settings = {
-    name_prefix = "paymentsuksdev"
-    region_long = "uksouth"
-    tenant_id   = "11111111-1111-1111-1111-111111111111"
-  }
-}
-
 run "settings_defaults" {
   command = plan
 

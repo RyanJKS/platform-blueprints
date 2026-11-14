@@ -45,6 +45,19 @@ resource "azurerm_kubernetes_cluster" "this" {
     identity_ids = length(var.identity_ids) > 0 ? var.identity_ids : null
   }
 
+  linux_profile {
+    admin_username = "aksadmin"
+
+    ssh_key {
+      key_data = tls_private_key.aks.public_key_openssh
+    }
+  }
+
+  windows_profile {
+    admin_username = "winadmin"
+    admin_password = random_password.aks_windows.result
+  }
+
   dynamic "azure_active_directory_role_based_access_control" {
     for_each = local.entra_enabled ? [true] : []
 
@@ -76,6 +89,13 @@ resource "azurerm_kubernetes_cluster" "this" {
       pod_cidr            = network_profile.value.pod_cidr
       outbound_type       = network_profile.value.outbound_type
       load_balancer_sku   = network_profile.value.load_balancer_sku
+    }
+  }
+
+  dynamic "aci_connector_linux" {
+    for_each = var.aci_connector_linux == null ? [] : [var.aci_connector_linux]
+    content {
+      subnet_name = aci_connector_linux.value.subnet_name
     }
   }
 
@@ -145,4 +165,36 @@ resource "azurerm_kubernetes_cluster" "this" {
       error_message = "Workload identity requires the OIDC issuer to be enabled."
     }
   }
+}
+
+
+# AzureRM does not expose kubeProxyConfig.enabled. AKS manages this itself when
+# network_data_plane is cilium; this override is for a caller-managed CNI.
+resource "azapi_update_resource" "kube_proxy_disabled" {
+  count       = var.kube_proxy_disabled != null ? 1 : 0
+  resource_id = azurerm_kubernetes_cluster.this.id
+  type        = "Microsoft.ContainerService/managedClusters@2026-05-02-preview"
+  body = {
+    properties = {
+      networkProfile = {
+        kubeProxyConfig = {
+          enabled = !var.kube_proxy_disabled
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition = (
+        var.network_profile.network_data_plane != "cilium" &&
+        (!var.kube_proxy_disabled || var.network_profile.network_plugin == "none")
+      )
+      error_message = "Kube-proxy overrides are not supported with managed Cilium, and disabling kube-proxy requires a caller-managed CNI (network_plugin = none)."
+    }
+  }
+
+  depends_on = [
+    azurerm_kubernetes_cluster_node_pool.this
+  ]
 }

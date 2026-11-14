@@ -10,7 +10,7 @@ Create an Azure Key Vault with RBAC authorization and purge protection. The modu
 assigns Key Vault Administrator to the creator identity at the vault scope. This role
 allows managing the vault's keys, secrets, and certificates.
 
-Requires Terraform >= 1.3.0 and `hashicorp/azurerm` >= 5.0.0.
+Requires Terraform >= 1.3.0, `hashicorp/azurerm` >= 5.0.0, and `hashicorp/time` >= 0.9.1.
 The caller configures provider authentication and remote state. This module declares
 provider requirements only and does not configure a provider or backend.
 Configure the AzureRM `features` block and subscription ID in the caller.
@@ -23,12 +23,12 @@ Pin the selected provider version in the consuming root module lock file.
 | `settings` | `object` | Yes | — | Shared naming and region defaults; see below. |
 | `name` | `string` | No | `null` | The resource name. |
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
-| `location` | `string` | No | `null` | The Azure region in which to create the resource. |
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
 | `tenant_id` | `string` | No | `null` | The Microsoft Entra tenant ID. |
 | `sku_name` | `string` | No | `"standard"` | The Key Vault SKU. |
 | `soft_delete_retention_days` | `number` | No | `90` | The retention period for deleted vaults and objects. |
 | `purge_protection_enabled` | `bool` | No | `true` | Whether to enable irreversible purge protection. |
+| `vault_creation_wait` | `string` | No | `"60s"` | Delay after vault creation or update before administrator role assignment and downstream resources. |
 | `public_network_access_enabled` | `bool` | No | `false` | Whether to allow access through the public endpoint. |
 
 ## Outputs
@@ -41,8 +41,13 @@ Pin the selected provider version in the consuming root module lock file.
 - `vault_uri`: Vault uri.
 - `creator_role_assignment_id`: Vault-scoped Key Vault Administrator role assignment ID.
 
-The `id` output depends on the creator role assignment, so resources consuming the
-vault ID wait for Terraform to create that assignment.
+The administrator role assignment waits after Terraform creates or updates the
+vault. The wait defaults to 60 seconds and can be configured with
+`vault_creation_wait` (for example, `"2m"`). All outputs depend on the role
+assignment, so downstream resources consuming these outputs wait for both the
+vault creation delay and the role assignment to finish.
+A fixed delay adds a buffer but does not verify Azure readiness or wait for RBAC
+permissions to propagate after the assignment.
 
 ## Terragrunt usage
 
@@ -63,7 +68,6 @@ inputs = {
   }
   name                = "kv-example-dev-001"
   resource_group_name = "rg-example-dev-uksouth"
-  location            = "uksouth"
   tenant_id           = "00000000-0000-0000-0000-000000000000"
 }
 ```
@@ -89,10 +93,10 @@ Pass the required `settings = module.solution_settings.settings` input. The modu
 accepts the full settings output and reads only the fields declared in its input
 type. Pass tags separately with `tags = module.solution_settings.tags` where supported.
 
-The default name is `${settings.name_prefix}akv`, with no separator added.
+The default name is `${settings.name_prefix}kv`, with no separator added.
 A nonempty `name` overrides the generated name. Name resolution lives in
 the top-level `locals` block, and the resource uses `local.name`.
-`location` defaults to `settings.region_long`; an explicit nonempty location wins.
+The location comes from `settings.region_long`; set that field to select the region.
 `tenant_id` defaults to `settings.tenant_id`; an explicit nonempty tenant ID wins.
 
 The optional `settings.object_id` selects the identity receiving Key Vault

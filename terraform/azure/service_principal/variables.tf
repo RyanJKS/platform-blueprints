@@ -76,3 +76,9 @@ variable "key_vault_id" {
     error_message = "key_vault_id must be null or a nonempty Key Vault resource ID."
   }
 }
+
+variable "secret_name_prefix" {
+  description = "Prefix to place before secret name"
+  type        = string
+  default     = ""
+}

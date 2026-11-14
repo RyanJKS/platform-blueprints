@@ -71,3 +71,36 @@ run "preview_release_train" {
     error_message = "Unpinned extensions must use the requested release train."
   }
 }
+
+run "virtual_nodes_identity" {
+  command = apply
+
+  variables {
+    extension = {
+      extension_type = "Microsoft.virtualnodes"
+      configuration_settings = {
+        replicaCount = "1"
+      }
+    }
+  }
+
+  override_resource {
+    target = azurerm_kubernetes_cluster_extension.extension
+    values = {
+      aks_assigned_identity = [{
+        principal_id = "11111111-1111-1111-1111-111111111111"
+        tenant_id    = "22222222-2222-2222-2222-222222222222"
+        type         = "SystemAssigned"
+      }]
+    }
+  }
+
+  assert {
+    condition = output.aks_assigned_identity == {
+      principal_id = "11111111-1111-1111-1111-111111111111"
+      tenant_id    = "22222222-2222-2222-2222-222222222222"
+      type         = "SystemAssigned"
+    }
+    error_message = "Expose the extension identity used for downstream role assignments."
+  }
+}

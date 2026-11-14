@@ -16,6 +16,13 @@ jobs:
       run-tests: true
 ```
 
+To share Terraform test inputs, add `fixtures.auto.tfvars` under the module's test
+directory (`tests` by default). Terraform automatically loads it for tests in that
+directory, so local and CI runs use plain `terraform test`. Test-file and run-level
+`variables` blocks can override these defaults. Files in parent directories are
+not inherited; pass cross-module variable files explicitly with `-var-file`.
+See [Terraform test variable loading and precedence](https://developer.hashicorp.com/terraform/language/tests#specify-variables-with-the-command-line-or-definition-files).
+
 Replace the revision with a published tag or commit SHA. Paths and input values
 refer to the calling repository. Reusable workflows use `workflow_call` and expose
 typed inputs and explicit secrets. Use `jobs.<job>.uses`, not `steps[*].uses`.

@@ -63,7 +63,7 @@ variable "tags" {
 }
 
 variable "key_vault_id" {
-  description = "The resource ID of an existing Azure Key Vault. Required when create_secret is true."
+  description = "The resource ID of an existing Azure Key Vault. Null skips storing the identity client ID."
   type        = string
   default     = null
 

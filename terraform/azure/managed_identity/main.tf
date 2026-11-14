@@ -21,7 +21,14 @@ resource "azurerm_federated_identity_credential" "this" {
   audience                  = each.value.audience
 }
 
+moved {
+  from = azurerm_key_vault_secret.client_id
+  to   = azurerm_key_vault_secret.client_id[0]
+}
+
 resource "azurerm_key_vault_secret" "client_id" {
+  count = var.key_vault_id != null ? 1 : 0
+
   name         = "${local.secret_name_prefix}client-id"
   value        = azurerm_user_assigned_identity.this.client_id
   key_vault_id = var.key_vault_id

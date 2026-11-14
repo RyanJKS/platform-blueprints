@@ -10,7 +10,7 @@ variable "settings" {
 }
 
 variable "name" {
-  description = "Optional resource name override. Defaults to settings.name_prefix followed by akv."
+  description = "Optional resource name override. Defaults to settings.name_prefix followed by kv."
   type        = string
   default     = null
 }

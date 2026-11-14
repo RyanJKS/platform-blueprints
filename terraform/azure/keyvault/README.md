@@ -23,7 +23,6 @@ Pin the selected provider version in the consuming root module lock file.
 | `settings` | `object` | Yes | — | Shared naming and region defaults; see below. |
 | `name` | `string` | No | `null` | The resource name. |
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
-| `location` | `string` | No | `null` | The Azure region in which to create the resource. |
 | `tags` | `map(string)` | No | `{}` | Tags to assign to the resource. |
 | `tenant_id` | `string` | No | `null` | The Microsoft Entra tenant ID. |
 | `sku_name` | `string` | No | `"standard"` | The Key Vault SKU. |
@@ -69,7 +68,6 @@ inputs = {
   }
   name                = "kv-example-dev-001"
   resource_group_name = "rg-example-dev-uksouth"
-  location            = "uksouth"
   tenant_id           = "00000000-0000-0000-0000-000000000000"
 }
 ```
@@ -95,10 +93,10 @@ Pass the required `settings = module.solution_settings.settings` input. The modu
 accepts the full settings output and reads only the fields declared in its input
 type. Pass tags separately with `tags = module.solution_settings.tags` where supported.
 
-The default name is `${settings.name_prefix}akv`, with no separator added.
+The default name is `${settings.name_prefix}kv`, with no separator added.
 A nonempty `name` overrides the generated name. Name resolution lives in
 the top-level `locals` block, and the resource uses `local.name`.
-`location` defaults to `settings.region_long`; an explicit nonempty location wins.
+The location comes from `settings.region_long`; set that field to select the region.
 `tenant_id` defaults to `settings.tenant_id`; an explicit nonempty tenant ID wins.
 
 The optional `settings.object_id` selects the identity receiving Key Vault

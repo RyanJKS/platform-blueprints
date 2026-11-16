@@ -1,5 +1,5 @@
 locals {
-  name = coalesce(var.name, "${replace(lower(var.settings.name_prefix), "/[^a-z0-9]/", "")}acr")
+  name = coalesce(var.name, "${replace(lower(var.settings.name_prefix), "/[^a-z0-9]/", "")}cr")
 }
 
 resource "azurerm_container_registry" "this" {

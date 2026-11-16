@@ -1,8 +1,8 @@
 mock_provider "azurerm" {
   mock_resource "azurerm_container_registry" {
     defaults = {
-      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ContainerRegistry/registries/paymentsuksdevacr"
-      login_server   = "paymentsuksdevacr.azurecr.io"
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ContainerRegistry/registries/paymentsuksdevcr"
+      login_server   = "paymentsuksdevcr.azurecr.io"
       admin_username = "registry-admin"
       admin_password = "mock-password" # pragma: allowlist secret
     }
@@ -22,7 +22,7 @@ run "defaults" {
 
   assert {
     condition = (
-      output.name == "paymentsuksdevacr" &&
+      output.name == "paymentsuksdevcr" &&
       output.location == "uksouth" &&
       azurerm_container_registry.this.resource_group_name == "rg-test" &&
       azurerm_container_registry.this.sku == "Basic" &&
@@ -48,7 +48,7 @@ run "normalize_generated_name" {
     }
   }
   assert {
-    condition     = output.name == "paymentsuksdevacr" && output.location == "westeurope"
+    condition     = output.name == "paymentsuksdevcr" && output.location == "westeurope"
     error_message = "Generated names must remove punctuation and use lowercase; location must follow settings."
   }
 }
@@ -116,8 +116,8 @@ run "connection_and_admin_outputs" {
   }
   assert {
     condition = (
-      output.id == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ContainerRegistry/registries/paymentsuksdevacr" &&
-      output.login_server == "paymentsuksdevacr.azurecr.io" &&
+      output.id == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ContainerRegistry/registries/paymentsuksdevcr" &&
+      output.login_server == "paymentsuksdevcr.azurecr.io" &&
       output.admin_username == "registry-admin" &&
       output.admin_password == "mock-password" && # pragma: allowlist secret
       azurerm_container_registry.this.anonymous_pull_enabled

@@ -14,6 +14,12 @@ Install an Azure-managed Kubernetes extension independently of the AKS cluster. 
 - `extension` (required): Deployment settings described below.
 - `configuration_protected_settings` (optional, default `{}`): Sensitive settings passed to the extension. Terraform still stores these values in state; protect the state backend.
 - Output `id`: The extension resource ID.
+- Output `aks_assigned_identity`: The Azure-assigned extension identity with
+  `principal_id`, `tenant_id`, and `type`, or `null` when the extension has no
+  identity. Use this identity for extension-specific role assignments, such as
+  `AcrPull` on a private registry for Virtual Nodes v2. It is separate from the
+  cluster kubelet identity. Apply the extension before consuming its identity
+  from another Terraform state.
 
 | Extension setting | Default | Description |
 | --- | --- | --- |

@@ -18,6 +18,8 @@ Pin the selected provider version in the consuming root module lock file.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
+| `key_vault_id` | `string` | No | `null` | Existing vault in which to store the identity's client ID; null skips secret creation. |
+| `secret_name_prefix` | `string` | No | `""` | Secret name prefix; an empty value uses the identity name. |
 | `settings` | `object` | Yes | — | Shared naming and region defaults; see below. |
 | `name` | `string` | No | `null` | The resource name. |
 | `resource_group_name` | `string` | Yes | — | The name of the existing resource group. |
@@ -28,6 +30,10 @@ Pin the selected provider version in the consuming root module lock file.
 The optional `federated_identity_credentials` input is a map keyed by credential
 name. It defaults to `{}`, which creates no federated credentials. See the
 federation example below for its fields.
+
+When `key_vault_id` is supplied, the module stores the identity's client ID as a
+Key Vault secret named `<identity-name>-client-id`. Set `secret_name_prefix` to
+use `<prefix>-client-id` instead. Omitting `key_vault_id` creates no secret.
 
 ## Outputs
 

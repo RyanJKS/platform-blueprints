@@ -19,7 +19,7 @@ run "settings_defaults" {
   command = plan
 
   assert {
-    condition     = azurerm_key_vault.this.name == "paymentsuksdevakv" && azurerm_key_vault.this.location == "uksouth"
+    condition     = azurerm_key_vault.this.name == "paymentsuksdevkv" && azurerm_key_vault.this.location == "uksouth"
     error_message = "Shared settings must supply the default resource name and location."
   }
   assert {
@@ -32,12 +32,12 @@ run "explicit_overrides" {
   command = plan
   variables {
     name      = "explicit-resource"
-    location  = "westeurope"
+    settings  = merge(var.settings, { region_long = "westeurope" })
     tenant_id = "22222222-2222-2222-2222-222222222222"
   }
   assert {
     condition     = azurerm_key_vault.this.name == "explicit-resource" && azurerm_key_vault.this.location == "westeurope"
-    error_message = "Explicit inputs must override shared settings."
+    error_message = "The explicit name must override shared settings, and location must follow the configured region."
   }
   assert {
     condition     = azurerm_key_vault.this.tenant_id == var.tenant_id

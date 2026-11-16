@@ -48,63 +48,15 @@ output "web_app_routing_identity" {
   value       = try(azurerm_kubernetes_cluster.this.web_app_routing[0].web_app_routing_identity, null)
 }
 
-output "kube_config_raw" {
-  description = "The cluster kubeconfig. Protect state and prefer Entra authentication for clients."
-  value       = azurerm_kubernetes_cluster.this.kube_config_raw
-  sensitive   = true
-}
-
-output "kube_config" {
-  description = "The raw cluster kubeconfig YAML, aliased from kube_config_raw for dependency consumers."
-  value       = azurerm_kubernetes_cluster.this.kube_config_raw
-  sensitive   = true
-}
-
-output "kube_config_credentials" {
-  description = "The structured cluster connection settings, or null when unavailable. Certificate fields are base64 encoded."
-  value       = try(azurerm_kubernetes_cluster.this.kube_config[0], null)
-  sensitive   = true
-}
-
 output "host" {
   description = "The Kubernetes API endpoint from the cluster kubeconfig, or null when unavailable."
   value       = try(azurerm_kubernetes_cluster.this.kube_config[0].host, null)
   sensitive   = true
 }
 
-output "client_certificate" {
-  description = "The base64-encoded client certificate, or null when unavailable. Entra authentication may not provide this credential."
-  value       = try(azurerm_kubernetes_cluster.this.kube_config[0].client_certificate, null)
-  sensitive   = true
-}
-
-output "client_key" {
-  description = "The base64-encoded client private key, or null when unavailable. Entra authentication may not provide this credential."
-  value       = try(azurerm_kubernetes_cluster.this.kube_config[0].client_key, null)
-  sensitive   = true
-}
-
 output "cluster_ca_certificate" {
   description = "The base64-encoded Kubernetes cluster CA certificate, or null when unavailable."
   value       = try(azurerm_kubernetes_cluster.this.kube_config[0].cluster_ca_certificate, null)
-  sensitive   = true
-}
-
-output "username" {
-  description = "The kubeconfig username, or null when unavailable. This may be empty for certificate or Entra authentication."
-  value       = try(azurerm_kubernetes_cluster.this.kube_config[0].username, null)
-  sensitive   = true
-}
-
-output "password" {
-  description = "The kubeconfig password, or null when unavailable. This may be empty for certificate or Entra authentication."
-  value       = try(azurerm_kubernetes_cluster.this.kube_config[0].password, null)
-  sensitive   = true
-}
-
-output "kube_admin_config_credentials" {
-  description = "The structured administrator connection settings, or null when unavailable. Requires Entra integration with local accounts enabled."
-  value       = try(azurerm_kubernetes_cluster.this.kube_admin_config[0], null)
   sensitive   = true
 }
 
@@ -116,12 +68,6 @@ output "fqdn" {
 output "private_fqdn" {
   description = "The private cluster API server FQDN, when configured."
   value       = azurerm_kubernetes_cluster.this.private_fqdn
-}
-
-output "kube_admin_config_raw" {
-  description = "The administrator kubeconfig, when Entra integration and local accounts are enabled."
-  value       = azurerm_kubernetes_cluster.this.kube_admin_config_raw
-  sensitive   = true
 }
 
 output "minimum_node_count" {

@@ -10,7 +10,7 @@ variable "settings" {
 }
 
 variable "name" {
-  description = "Optional resource name override. Defaults to settings.name_prefix followed by akv."
+  description = "Optional resource name override. Defaults to settings.name_prefix followed by kv."
   type        = string
   default     = null
 }
@@ -19,12 +19,6 @@ variable "resource_group_name" {
   description = "The name of the existing resource group."
   type        = string
   nullable    = false
-}
-
-variable "location" {
-  description = "Optional Azure region override. Defaults to settings.region_long."
-  type        = string
-  default     = null
 }
 
 variable "tags" {

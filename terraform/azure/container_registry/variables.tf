@@ -8,7 +8,7 @@ variable "settings" {
 }
 
 variable "name" {
-  description = "Optional globally unique registry name. Defaults to the lowercase alphanumeric settings.name_prefix followed by acr."
+  description = "Optional globally unique registry name. Defaults to the lowercase alphanumeric settings.name_prefix followed by cr."
   type        = string
   default     = null
 }

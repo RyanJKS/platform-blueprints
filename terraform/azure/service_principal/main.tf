@@ -1,3 +1,7 @@
+locals {
+  secret_name_prefix = "${coalesce(var.secret_name_prefix, var.name)}-"
+}
+
 resource "azuread_application" "this" {
   display_name = var.name
   owners       = var.owners
@@ -43,13 +47,13 @@ resource "azuread_service_principal_password" "this" {
   count = var.create_secret ? 1 : 0
 
   service_principal_id = azuread_service_principal.this.id
-  display_name         = "${var.name}-client-secret"
+  display_name         = "${local.secret_name_prefix}client-secret"
 }
 
 resource "azurerm_key_vault_secret" "client_id" {
   count = var.create_secret ? 1 : 0
 
-  name         = "${var.name}-client-id"
+  name         = "${local.secret_name_prefix}client-id"
   value        = azuread_service_principal.this.client_id
   key_vault_id = var.key_vault_id
 }
@@ -57,7 +61,7 @@ resource "azurerm_key_vault_secret" "client_id" {
 resource "azurerm_key_vault_secret" "client_secret" {
   count = var.create_secret ? 1 : 0
 
-  name         = "${var.name}-client-secret"
+  name         = "${local.secret_name_prefix}client-secret"
   value        = azuread_service_principal_password.this[0].value
   key_vault_id = var.key_vault_id
 }
